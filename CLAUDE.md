@@ -53,7 +53,8 @@ docs/journal/           journal des phases, décisions, a-traiter.md
 ```
 
 ## Commandes
-- `npm run build` — assemble `src/legacy` en `dist/index.html` (copie du prototype tant que `src/legacy` est vide)
+- `npm run build` — assemble `src/legacy` en `dist/index.html` (un seul `<script>`) ; `npm run build -- --multi` — un `<script src>` par fichier (mode des tests e2e)
+- `node scripts/verify-split.mjs` — prouve que `src/legacy` reconstitue le prototype octet pour octet (phase 03)
 - `npm run serve` — sert `dist/` sur http://localhost:5173 (lancé automatiquement par Playwright)
 - `npm run test:e2e` — Playwright (30 tests, ~1 min ; voir `tests/README.md` pour la fixture `suktum` et les écarts assumés)
 - `npm run emulators` — émulateurs Firebase
