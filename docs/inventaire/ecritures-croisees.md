@@ -1,6 +1,6 @@
 # Écritures croisées — un utilisateur modifie une donnée qui appartient à un autre
 
-188 sites, triés par ligne. Chacun est un motif lecture → modification → réécriture complète (dernier écrit gagnant) ou une création sous le document d'autrui. Solutions : sous-collection (un document par contributeur), `increment()` pour les compteurs, transaction serveur (Cloud Function) pour tout ce qui a une valeur.
+189 sites, triés par ligne. Chacun est un motif lecture → modification → réécriture complète (dernier écrit gagnant) ou une création sous le document d'autrui. Solutions : sous-collection (un document par contributeur), `increment()` pour les compteurs, transaction serveur (Cloud Function) pour tout ce qui a une valeur.
 
 | Ligne | Fonction | Préfixe | Champ modifié | Qui modifie quoi | Solution proposée |
 |---|---|---|---|---|---|
@@ -54,6 +54,7 @@
 | 15453-15457 | approveEnrollment | enrollment | status | admin (client) lit puis réécrit le doc d'inscription de l'élève | transaction serveur (Function `approveEnrollment`) |
 | 15474 | approveFlaggedLesson | lesson | aiFlagged | admin réécrit la leçon du formateur | Function admin de modération (`update` ciblé sur `aiFlagged`) |
 | 15497 | recordTrainerSnapshotsIfNeeded | trainersnapshot: | doc entier | tout client formateur écrit les snapshots quotidiens de tous les formateurs | Function planifiée (cron) |
+| 15902 | (contenu du jour) | dailycontent | cache global | premier client du jour écrit pour tous | Function planifiée |
 | 16040 | recordProfileVisit | profilevisit | document entier (create) | le visiteur crée un doc dans l'espace du profil visité | sous-collection users/{owner}/visits/{visitor}, règle create-only visitor == uid |
 | 16247 | toggleBlockUser | user (hors lot) | followers, following | le bloqueur réécrit user:<bloqué> pour rompre les abonnements | sous-collection followers + Function |
 | 16247 | blocage de profil (fonction englobante, à vérifier) | user: | followers[], following[] | le bloqueur réécrit le doc de l'utilisateur bloqué pour rompre les abonnements | Function de blocage transactionnelle |

@@ -2,11 +2,11 @@
 
 Classes définies dans `docs/ARCHITECTURE-CIBLE.md`. En cas de doute, SERVEUR_SEUL.
 
-- **SERVEUR_SEUL** : 84
-- **ADMIN** : 41
-- **PRIVE** : 41
+- **SERVEUR_SEUL** : 96
+- **PRIVE** : 43
+- **ADMIN** : 42
 - **PUBLIC_PROPRIETAIRE** : 37
-- **PARTICIPANTS** : 25
+- **PARTICIPANTS** : 26
 
 Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lectures** et les écritures du propriétaire passent par les règles Firestore ; dans presque tous les cas, un ou plusieurs **champs** de ces documents (statut, prix, compteurs) restent SERVEUR_SEUL — voir la justification et `logique-sensible.md`.
 
@@ -22,11 +22,13 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | activitylog | PRIVE | Journal personnel écrit/lu/masqué/vidé uniquement par le propriétaire (11397, 11434, 11443) ; actuellement shared=true (fuite) |
 | ad | SERVEUR_SEUL | `spent`/`impressions`/`status` modifiés par tout spectateur (26105-26113) et sommés comme revenu plateforme (35050-35052) ; validation admin (25920) |
 | adclickattribution | PRIVE | Clé = currentUser, shared=false, seul le propriétaire lit/écrit/supprime (11275, 11282, 11294) |
+| adcoinwatches | SERVEUR_SEUL | Plafond quotidien de pièces gagnées par publicité (l. 34674-34700) : compteur financier écrit en privé par le client, donc contournable. |
 | adminloginlog | ADMIN | Journal des connexions d'équipe (28923) ; lecture « propriétaire seul » n'est gardée que par une variable client (29754) |
 | adseenby | PRIVE | Clé `<adId>__<user>`, shared=false, lecture/écriture par le seul spectateur (26089, 26119) |
 | affiliatepartnership | SERVEUR_SEUL | Le créateur fige lui-même `commissionPercent` (22250) qui sert ensuite au calcul des reversements ; falsifiable côté client |
 | affiliatesale | SERVEUR_SEUL | Montants de commission et frais plateforme calculés et écrits par l'acheteur (27253-27263) ; c'est un reversement |
 | aitechreport | ADMIN | Rapport interne équipe technique écrit et lu dans le back-office (21983, 22002) |
+| anniversarysent | SERVEUR_SEUL | Rappel « système » exécuté par le navigateur (l. 19416) → fonction planifiée. |
 | auctionbid | SERVEUR_SEUL | Validation mise ≥ courant+1 et fin d'enchère faites côté client (27005-27007) ; l'historique doit être écrit par la transaction serveur |
 | auditlog | SERVEUR_SEUL | Classé ainsi dans ARCHITECTURE-CIBLE ; chaîne de hachage et rôle de l'acteur calculés côté client (28932-28940), écrit aussi depuis des sessions utilisateur (16961, 18337) |
 | autoblockedcomment | ADMIN | File de modération d'images bloquées (15158) traitée par l'admin (32454-32463) ; image base64 potentiellement sensible |
@@ -75,10 +77,12 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | coursenotesversion | PARTICIPANTS | Historique des notes, créé par tout élève approuvé (l.18693) et lu par les mêmes (l.18724) ; création seule, jamais de modification. |
 | coursepodcast | PUBLIC_PROPRIETAIRE | Seul le formateur du cours géré écrit (l.19618) ; contenu de cours lu par les inscrits ; audio base64 → Storage (l.19612). |
 | coursesearchlog | ADMIN | Journal des questions des élèves lu uniquement au back-office (l.32621) ; création par l'élève (l.17740) à faire via Function ou règle create-only. |
+| coursesurvey | PARTICIPANTS | Enquête d'un élève sur un cours (l. 14406), lue par le formateur du cours et l'admin (l. 20654). |
 | coursevideo | PUBLIC_PROPRIETAIRE | Écrit et modifié uniquement par le formateur propriétaire (l.19650, 19853, 36416) ; mediaFlagged fixé côté client (l.19652) doit être posé par le serveur ; vidéo base64 → Storage/Stream. |
 | creatorfundpayout | SERVEUR_SEUL | Reversements en FCFA calculés et créés côté client (l.25852) et modifiés par le bénéficiaire (l.33856-33858) : montant, statut et contestation doivent être posés par Functions. |
 | creatorvote | SERVEUR_SEUL | Élection « créateur du mois » : le tableau votes[] est réécrit par tout votant (l.14460-14466), un vote par utilisateur non garanti ; sous-collection votes/{uid} + comptage serveur. |
 | customtheme | PRIVE | Clé préfixée par currentUser et shared=false partout (l.8274, 8295, 8333) ; seule utilisation : thème personnel. |
+| dailycontent | SERVEUR_SEUL | Cache global écrit par le premier client (l. 15902) → cron serveur. |
 | dailysummarycache | ADMIN | Résumé de l'état de la plateforme généré par l'IA au back-office (l.31480) et lu seulement par l'admin (l.31460). |
 | decisionlog | ADMIN | Journal de décisions signé currentAdminName (l.32833), archivage réservé au super-admin via classe CSS admin-super-only (l.33907) : rôle à vérifier par claim. |
 | deliverycircle | PUBLIC_PROPRIETAIRE | Chaque membre écrit/supprime uniquement son propre doc (clé ville__currentUser, l.21080, 21087) ; la liste est lue par les autres membres (l.21104). |
@@ -114,9 +118,11 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | gift | SERVEUR_SEUL | Flux financier FCFA avec commission calculée client (25428, 25563–25567) et aucun débit de solde ; explicitement SERVEUR_SEUL dans ARCHITECTURE-CIBLE. |
 | group | PARTICIPANTS | Lecture/écriture par les membres listés (`members.includes(currentUser)` 28613) ; départ d'un membre modifie `members` (28710) → sous-collection ou arrayRemove. |
 | groupmsg | PARTICIPANTS | Chat de groupe lu/écrit par les membres (28668, 28688) ; à transformer en sous-collection de messages plutôt qu'un tableau unique. |
+| healthcheck | ADMIN | Outil de diagnostic du back-office (l. 7071-7081) ; collection technique avec TTL. |
 | importantalert | ADMIN | Alerte back-office (« grosse commande ») lue et marquée `seen` par l'admin (29642–29645) mais créée depuis la session de l'acheteur (29596) → création par Function, lecture par claim. |
 | internalchangelog | ADMIN | Journal interne du back-office, auteur `currentAdminName` (33938), supprimable (33947) ; aucune vérification de rôle côté stockage. |
 | knowledgebase | ADMIN | Procédures internes du back-office (33957) ; suppression « super-admin » gardée uniquement par une classe CSS (33990). |
+| latereminder | SERVEUR_SEUL | Idem anniversarysent (l. 20419). |
 | learningpath | PUBLIC_PROPRIETAIRE | Lu par tous les connectés (22166), créé par le formateur (`trainerUsername: currentUser`, 22184) avec condition trainerVerified vérifiée côté client (22153, à vérifier par règle). |
 | lesson | SERVEUR_SEUL | Contenu payant (accès conditionné à enrollment/edusubscription/trial, 17420–17429, et `freePreview`) avec pièces jointes base64 jusqu'à 5 Mo (19797) et modération admin `aiFlagged` (15474) → Storage + Functions. |
 | lessontemplate | PRIVE | Clé `lessontemplate:<currentUser>__` lue et écrite uniquement par le propriétaire (19740, 19750) ; shared=true inutile. |
@@ -133,6 +139,7 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | loginevent | SERVEUR_SEUL | Journal d'audit des connexions (7208) exploité par l'admin (28957) ; doit être écrit par une Function d'auth pour ne pas être falsifiable. |
 | loyaltypoints | SERVEUR_SEUL | Solde à valeur monétaire (5 FCFA/point, 26713) lu-incrémenté-réécrit côté client (7866, 27270, 27275) : n'importe qui peut se créditer. |
 | meetinghistory | ADMIN | Écrit et lu uniquement sous isGenuineOwnerSession (33511, 33667) ; données internes de l'équipe. |
+| monthlysellerreport | PRIVE | Cache personnel du vendeur (l. 19389). |
 | negotiation | SERVEUR_SEUL | Le prix accepté (26798) est directement appliqué comme prix unitaire de la commande (27198-27201) : la validation d'offre et le statut doivent être transactionnels serveur. |
 | note | PRIVE | Notes personnelles en stockage privé (28216, 28283), aucun lecteur tiers. |
 | notif | SERVEUR_SEUL | Créée par un autre utilisateur au nom du destinataire (11459) puis modifiée par lui (11751) ; la création via Function évite le spam/usurpation, le destinataire garde read/pinned/delete sur `users/{uid}/notifs`. |
@@ -163,11 +170,13 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | quickscroll | PRIVE | shared=false, clé postId__currentUser (10771) ; signal de pertinence personnel. |
 | quiz | SERVEUR_SEUL | correctIndex est stocké dans le document lisible par les élèves (18574, 18617) : la bonne réponse doit être isolée côté serveur. |
 | quizsubmission | SERVEUR_SEUL | L'élève calcule et écrit lui-même `correct` (18629-18632) ; la correction doit être une Function. |
+| receiptreminder | SERVEUR_SEUL | Idem (l. 19512). |
 | recentlyviewed | PRIVE | Historique personnel (26642, 21023) ; l'agrégat admin de l'entonnoir (35073) doit devenir une Function d'analytics. |
 | recommendation | PUBLIC_PROPRIETAIRE | L'auteur écrit son propre doc `target__author` (l.16064) et seul lui peut le retirer (l.16072) ; lu par tous sur le profil (l.16052). |
 | recurringreminder | PRIVE | Uniquement lu/écrit par `currentUser` sur ses propres clés (l.19492, 19538) ; aucune lecture par un tiers. |
 | recurringtaskdone | ADMIN | Checklist du poste de commandement réservé au super-admin (l.6810, 29404, 29585). |
 | refundrequest | SERVEUR_SEUL | Litige financier : le statut exclut des reversements (l.21489) et des commissions (l.35034), résolu par l'admin avec override de réception (l.23103-23110). |
+| renewalreminder | SERVEUR_SEUL | Idem (l. 19556). |
 | report | ADMIN | Signalements lus/résolus par la modération (l.34113), tri IA (l.32264) et seuils live automatiques (l.32153) ; la création doit passer par Function pour fixer reporterUser. |
 | repost | PUBLIC_PROPRIETAIRE | Le reposteur écrit son propre doc `postId__user` (l.23377) ; lu par tous pour le fil (l.8856). |
 | restrictedmode | SERVEUR_SEUL | Flag Mode Familial/mineur posé par le système (l.7853) et par un parent sur un autre compte (l.20166) ; le contrôle du lien approuvé est côté client (l.20164). |
@@ -176,9 +185,11 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | sanctionappeal | ADMIN | Recours examiné par l'admin (l.32642) ; l'acceptation lève la suspension (l.32665-32673) — doit être une Function. |
 | satisfactionsurvey | SERVEUR_SEUL | Création à valider côté serveur (répondant = client de la commande/ticket, une seule réponse, l.28572) ; lecture agrégée admin seulement (l.28585). |
 | scheduledsystemnotif | SERVEUR_SEUL | Diffusion à tous les utilisateurs déclenchée par n'importe quel client (l.35852-35868) — doit devenir une Function planifiée. |
+| schedulereminder | SERVEUR_SEUL | Idem (l. 19592). |
 | screentimetoday | PRIVE | Compteur local `shared=false` (l.8413), jamais lu par un tiers. |
 | searchhistory | PRIVE | Historique personnel lu/écrit uniquement par `currentUser` (l.11247, 11255). |
 | sellercoachreport | PRIVE | Rapport IA personnel du vendeur (l.21161, 21171) ; la génération IA (l.21159) doit toutefois passer par Function (clé API). |
+| sellerinactivereminder | SERVEUR_SEUL | Idem (l. 19374). |
 | sellerinternalnote | ADMIN | Note interne de modération écrite par l'admin (l.23156) ; aujourd'hui lisible et supprimable par le vendeur (l.7983, 7993). |
 | sellerrating | SERVEUR_SEUL | Éligibilité (acheteur + livré + unique) vérifiée côté client (l.21617-21619) et déclenche le badge vendeur recommandé (l.22084). |
 | series | SERVEUR_SEUL | Catalogue payant écrit par l'admin (l.34203) mais lu par tous (l.34530) ; prix/coinPrice/freeEpisodeCount pilotent les déblocages (l.34490). |
@@ -187,6 +198,8 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | seriesrating | PUBLIC_PROPRIETAIRE | Clé `seriesId__username`, seul le noteur écrit (l.21601), lecture publique pour l'affichage (l.21610) ; garde « a regardé/acheté » (l.21596) à recontrôler serveur. |
 | seriessubscriber | PUBLIC_PROPRIETAIRE | Clé `seriesId__username`, écriture/suppression par l'abonné seul (l.34498-34504) ; lecture par le créateur/système pour notifier (l.34519). |
 | servicebooking | SERVEUR_SEUL | La réservation retire un créneau du produit du vendeur et fige un prix (l.27572-27577) : transaction atomique + calcul de revenu (l.24256-24259). |
+| servicereminder | SERVEUR_SEUL | Idem (l. 19433). |
+| serviceslotsreminder | SERVEUR_SEUL | Idem (l. 27554). |
 | settings:<auto-acceptation> | ADMIN | Interrupteurs décidant la validation automatique d'abonnements/inscriptions (l.32203, 32213, 32223, 32327) : lus et appliqués uniquement par Functions. |
 | settings:<clés API> | SERVEUR_SEUL | Clés lues par tout client et injectées dans des `fetch` navigateur (l.8046-8051, 26369-26373) : à déplacer en secrets de Functions, jamais lisibles côté client. |
 | settings:<interne admin/alertes/audit> | ADMIN | Données de gouvernance (chaîne d'audit l.28936-28940, seuils l.7103, réunions l.33504) sans usage utilisateur ; intégrité de l'audit impose l'écriture par Functions. |
@@ -198,6 +211,7 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | sharedfeed | PARTICIPANTS | Document à deux membres userA/userB (l.27753) modifié par l'un ou l'autre (l.27764, 27797, 27812) ; règle « membres listés ». |
 | sharedresource | PUBLIC_PROPRIETAIRE | Auteur seul écrit (l.20351), lecture par tous les formateurs (l.20361) ; contrôle du rôle formateur à ajouter (à vérifier). |
 | shareSignal | PRIVE | Signal d'algorithme personnel, écrit et lu uniquement par son auteur (l.15269, 10706) malgré shared=true. |
+| shippingreminder | SERVEUR_SEUL | Idem (l. 19527). |
 | shopsubrequest | SERVEUR_SEUL | Demande d'abonnement payant : le passage à `approved` (l.16634) déclenche un abonnement de 30 jours sans preuve de paiement. |
 | shopsubscription | SERVEUR_SEUL | Abonnement conditionnant la visibilité de la boutique (l.16522-16525) créé par simple approbation client (l.16632) ; renouvellement/annulation à gérer serveur. |
 | sound | PUBLIC_PROPRIETAIRE | Média du créateur (l.9975) ; usageCount incrémenté par tous (l.9984) et featuredOnHome (l.36176) sortent du document (increment() / Function) car royalties = usageCount × taux (l.36189-36191). |
@@ -223,7 +237,8 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | trainerrequest | SERVEUR_SEUL | Candidature avec numéro de paiement, photo et diplôme (16501) ; approbation attribue le rôle formateur (15399) et l'auto-validation IA tourne dans le navigateur du candidat (32307) — approbation/rôle via Function uniquement. |
 | trainersnapshot | SERVEUR_SEUL | Snapshots quotidiens de tous les formateurs écrits par le premier client formateur du jour (15497) ; c'est une tâche planifiée serveur (Function cron), lecture propriétaire/admin. |
 | trendvote | SERVEUR_SEUL | Tableau `votes` partagé réécrit par chaque votant (14487) ; élection publique avec risque de bourrage/écrasement — sous-collection de votes ou Function transactionnelle. |
-| user | SERVEUR_SEUL | Doc mêlant profil public, PII (googleEmail 7850, trainerPaymentNumber 15399), rôles (isTrainer 15399) et sanctions (status 32140, 35661) écrits par le client ; doit être éclaté : profil public (propriétaire), champs privés (PRIVE), rôles/sanctions/compteurs (Functions). |
+| trialexpiryreminder | SERVEUR_SEUL | Idem (l. 19483). |
+| user | SERVEUR_SEUL | Un seul document mêle profil public, rôles (isTrainer l. 15399, isAdminTrainer auto-attribué l. 16692, stateFunded l. 16989), sanctions (status l. 35665-35724), KYC avec photo de pièce (l. 21790), PIN en clair (l. 21767) et graphe social (l. 13534) ; à éclater en profil public + sous-collections privées + claims. |
 | userstrike | ADMIN | Sanctions formelles écrites depuis le back-office (35652) avec escalade suspension/ban automatique (35661, 35670) ; lecture par l'admin (35563) et notification à l'utilisateur. |
 | videoanalysis | SERVEUR_SEUL | Appels à l'API Video Intelligence avec clé stockée en settings (9536, 9589) faits depuis le navigateur ; résultat suspend automatiquement le post (9617) — à exécuter en Function avec la clé côté serveur. |
 | videocompletion | PUBLIC_PROPRIETAIRE | Un doc par spectateur (`<postId>__<viewer>`, 12644) écrit uniquement par lui ; agrégé en lecture par le créateur (12655) — règle `username == uid` ; agrégats par Function à terme (C1). |
@@ -235,6 +250,7 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | wantedresponse | PUBLIC_PROPRIETAIRE | Réponse écrite par son auteur sur sa propre clé (l. 27096-27097), affichée à tous sur le détail de l'annonce (l. 27126-27129). |
 | watchhistory | PRIVE | Historique personnel shared=false (l. 13265, 15881), effacé par le propriétaire (l. 15893). |
 | watchposition | PRIVE | Position de lecture personnelle shared=false (l. 12578, 12590, 12594). |
+| weathercheck | PRIVE | Cache personnel du vendeur (l. 21433). |
 | wisdomcapsule | SERVEUR_SEUL | Contenu éditorial écrit/supprimé seulement par le propriétaire admin (`isGenuineOwnerSession` l. 36822, 36836), lu par tous (l. 36809) ; écriture via Function + Storage pour l'audio. |
 | wishlist | PRIVE | Liste personnelle écrite par currentUser (l. 22400) mais visibilité conditionnelle `wishlistVisible` (l. 16131) et balayage global `safeList('wishlist:')` par le vendeur (l. 22422) → exposition et notifications « retour en stock » via Function. |
 | workgroup | PARTICIPANTS | Créé par le formateur du cours (l. 36574, garde l. 18209), lu par les élèves listés dans `members` (l. 36590). |

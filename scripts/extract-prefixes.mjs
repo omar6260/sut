@@ -26,18 +26,31 @@ lines.forEach((line, i) => {
   }
 });
 
+// Clés construites hors de l'appel :  const xKey = 'prefixe:' + …  puis safeGet(xKey, …).
+// On les compte comme préfixes (sans ventilation par opération : la variable peut servir à get et set).
+const NOT_PREFIXES = new Set(['data', 'http', 'https', 'blob', 'mailto', 'tel']); // faux positifs (dataUrl, URL)
+const ASSIGN = /\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*(['"`])([a-zA-Z0-9_]+):/g;
+lines.forEach((line, i) => {
+  for (const m of line.matchAll(ASSIGN)) {
+    if (NOT_PREFIXES.has(m[2])) continue;
+    const rec = touch(m[2]);
+    rec.viaVariable = (rec.viaVariable || 0) + 1;
+    rec.lines.add(i + 1);
+  }
+});
+
 // Préfixes construits dynamiquement : safeGet(k, …) où k vient d'une liste — signalés à part.
 const dynamic = [];
 lines.forEach((line, i) => {
   if (/(safeGet|saveWithRetry|safeList|window\.storage\.(?:get|set|list|delete))\(\s*[a-zA-Z_$][\w$.]*\s*[,)]/.test(line)) dynamic.push(i + 1);
 });
 
-const rows = [...prefixes.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([p, r]) => ({ prefix: p, ...r, lines: [...r.lines].sort((a, b) => a - b) }));
+const rows = [...prefixes.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([p, r]) => ({ prefix: p, viaVariable: 0, ...r, lines: [...r.lines].sort((a, b) => a - b) }));
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ prefixes: rows, dynamicCallLines: dynamic }, null, 2));
 } else {
   console.log(`${rows.length} préfixes littéraux ; ${dynamic.length} appels avec clé calculée (variable)`);
-  console.log('prefix\tget\tset\tlist\tdelete\tshared=true\tshared=false\tshared=?\tpremière ligne');
-  for (const r of rows) console.log([r.prefix, r.get, r.set, r.list, r.delete, r.sharedTrue, r.sharedFalse, r.sharedUnknown, r.lines[0]].join('\t'));
+  console.log('prefix\tget\tset\tlist\tdelete\tviaVariable\tshared=true\tshared=false\tshared=?\tpremière ligne');
+  for (const r of rows) console.log([r.prefix, r.get, r.set, r.list, r.delete, r.viaVariable, r.sharedTrue, r.sharedFalse, r.sharedUnknown, r.lines[0]].join('\t'));
 }

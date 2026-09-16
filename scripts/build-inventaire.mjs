@@ -34,12 +34,14 @@ for (const f of files) {
 const byPrefix = (a, b) => a.split('|')[1].trim().localeCompare(b.split('|')[1].trim());
 const byLine = (a, b) => parseInt(a.split('|')[1], 10) - parseInt(b.split('|')[1], 10);
 
-const seen = new Set();
-rows.PREFIXES = rows.PREFIXES.sort(byPrefix).filter((l) => { const p = l.split('|')[1].trim(); if (seen.has(p)) return false; seen.add(p); return true; });
-const seenC = new Set();
-rows.CLASSIFICATION = rows.CLASSIFICATION.sort(byPrefix).filter((l) => { const p = l.split('|')[1].trim(); if (seenC.has(p)) return false; seenC.add(p); return true; });
-rows.ECRITURES_CROISEES.sort(byLine);
-rows.LOGIQUE_SENSIBLE.sort(byLine);
+// Par préfixe : le DERNIER lot lu gagne (les lots de correction, numérotés 9x, écrasent les lots d'analyse).
+const lastWins = (list) => { const m = new Map(); for (const l of list) m.set(l.split('|')[1].trim(), l); return [...m.values()].sort(byPrefix); };
+rows.PREFIXES = lastWins(rows.PREFIXES);
+rows.CLASSIFICATION = lastWins(rows.CLASSIFICATION);
+// Par site : dédoublonnage sur (ligne, préfixe).
+const uniqBySite = (list) => { const m = new Map(); for (const l of list) { const c = l.split('|'); m.set(`${c[1].trim()}|${c[3].trim()}`, l); } return [...m.values()].sort(byLine); };
+rows.ECRITURES_CROISEES = uniqBySite(rows.ECRITURES_CROISEES);
+rows.LOGIQUE_SENSIBLE = uniqBySite(rows.LOGIQUE_SENSIBLE);
 
 const classes = {};
 for (const l of rows.CLASSIFICATION) { const c = l.split('|')[2].trim(); classes[c] = (classes[c] || 0) + 1; }

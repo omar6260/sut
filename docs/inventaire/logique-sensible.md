@@ -1,6 +1,6 @@
 # Logique sensible à migrer côté serveur
 
-294 sites, triés par ligne. Périmètre : pièces, achats, commissions, reversements, fonds créateur, badges payants, abonnements, enchères, codes promo, points de fidélité, rôles, sanctions, PIN/2FA/codes de secours, âge et Mode Familial, auto-acceptation. Chaque ligne devient une Cloud Function (phase 06) ou une règle de sécurité.
+295 sites, triés par ligne. Périmètre : pièces, achats, commissions, reversements, fonds créateur, badges payants, abonnements, enchères, codes promo, points de fidélité, rôles, sanctions, PIN/2FA/codes de secours, âge et Mode Familial, auto-acceptation. Chaque ligne devient une Cloud Function (phase 06) ou une règle de sécurité.
 
 | Ligne | Fonction | Préfixe | Règle métier résumée | Pourquoi côté serveur |
 |---|---|---|---|---|
@@ -267,6 +267,7 @@
 | 34661-34664 | unlockEpisodeWithCoins | episodeunlock | vérifie solde, écrit `coinbalance - coinPrice` puis crée le déverrouillage (shared=false) | pièces : n'importe qui peut sauter le débit ; besoin d'une transaction |
 | 34662-34669 | unlockEpisodeWithCoins | series | débit de `coinbalance:` du `coinPrice` de l'épisode puis écriture `episodeunlock:` | pièces / solde modifié par le client (lecture → modification → réécriture) |
 | 34669-34676 | startRewardedAd | settings:adcoinreward, adcoindailylimit | pièces gagnées par pub, limite journalière stockée shared=false par l'utilisateur | monnaie + plafond contournable |
+| 34674-34700 | startRewardedAd | adcoinwatches | limite `settings:adcoindailylimit` de pubs récompensées par jour | plafond de pièces contournable (privé, client) |
 | 34682-34700 | startRewardedAd | coinbalance | Limite quotidienne adcoindailylimit et crédit adcoinreward après minuterie client | Compteur et récompense manipulables ; serveur avec preuve de visionnage |
 | 34872 | publishCommunityGroupPost | communitypost | Seul un membre (`g.members.includes(currentUser)`) peut publier | Contrôle d'appartenance uniquement client ; à porter en règle Firestore avec `get()` sur le groupe |
 | 35034, 35151 | renderFinanceDashboard / exportFinanceReport | refundrequest | un litige `resolved` retire la commission de la commande du chiffre plateforme | calcul financier admin |

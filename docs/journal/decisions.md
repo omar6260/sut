@@ -44,3 +44,12 @@ Alternative écartée : asserter sur les textes wolof — fragile, et non couver
 **Deux boutons recouverts sur Pixel 7 sont actionnés par `dispatchEvent('click')`, avec renvoi vers `a-traiter.md`.**
 Raison : caractériser la logique (like, commentaire) sans corriger le CSS du prototype, interdit en phase 01.
 Alternative écartée : `click({ force: true })` — clique aux coordonnées, donc sur l'élément qui recouvre.
+
+## Décisions produit en attente (issues de la phase 02) — à valider par Gorgui avant la phase 04
+
+- **D4 — Changement de nom d'utilisateur.** `changeUsername` (l. 23478-23510) réécrit tous les posts, profils et fils privés. Garder la fonctionnalité ⇒ ID Firestore = uid immuable, username = champ (encodage des clés en phase 04). La retirer ⇒ username comme ID.
+- **D5 — Opt-out de notifications.** Jamais fonctionnel dans le prototype (§1l). Le faire fonctionner en phase 06 ou retirer l'option de l'interface ?
+- **D6 — Ajustement de solde par l'admin** (l. 35211) : sans effet dans le prototype. Confirmer que c'est voulu (avec journal `coinadjustment`).
+- **D7 — Visibilité de la wishlist** : lecture par autrui si `wishlistVisible` (l. 16131) et balayage vendeur « retour en stock » (l. 22422). Garder les deux ?
+- **D8 — Contenu de cours avant inscription** : vidéos, podcasts, FAQ, concours visibles en catalogue ou seulement après inscription ? (fixe la règle unique « cours », §1a).
+- **D9 — Ordre 04/07** : déport provisoire des médias vers Storage dès la phase 04, ou aucun test avec médias avant la phase 07 ?
