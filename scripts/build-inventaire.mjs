@@ -21,7 +21,13 @@ for (const f of files) {
     const lines = m[1].split('\n').filter((l) => l.startsWith('|'));
     // Retire l'en-tête, le séparateur et les lignes « vides » `| - | - |`.
     const body = lines.slice(2).filter((l) => !/^\|\s*-\s*\|/.test(l));
-    rows[block].push(...body.map((l) => l.replace(/\s+\|\s*$/, ' |')));
+    // Normalise : espaces de fin, et « prefixe: » → « prefixe » dans la 1re colonne des blocs par préfixe.
+    rows[block].push(...body.map((l) => {
+      let line = l.replace(/\s+\|\s*$/, ' |');
+      // « `user:` », « user (hors lot, …) », « settings:<groupe> » → nom canonique en 1re colonne.
+      if (block === 'PREFIXES' || block === 'CLASSIFICATION') line = line.replace(/^\|\s*`?([A-Za-z0-9_]+)(?::(<[^>|`]*>)?)?`?[^|]*\|/, (m, p, g) => `| ${p}${g ? ':' + g : ''} |`);
+      return line;
+    }));
   }
 }
 
