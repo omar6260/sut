@@ -30,3 +30,17 @@ Alternative écartée : Vitest/Jest — à reconsidérer en phase 06 si `functio
 
 **Version Node figée à 22 (`.nvmrc`, `engines`).**
 Raison : Node 22 est la cible des Cloud Functions v2 ; même version partout évite les surprises.
+
+## 2026-09-16 — Phase 01
+
+**Espace partagé de `window.storage` fourni par `page.exposeBinding` (un `MemoryStorage` par test), pas par un serveur Node local.**
+Raison : zéro processus supplémentaire, isolation totale entre tests, parallélisme gratuit ; A et B d'un même test partagent l'instance par construction.
+Alternative écartée : mini-serveur HTTP partagé — état global entre tests, nettoyage à gérer, ports à réserver.
+
+**La fixture `signUp` sélectionne explicitement « Français ».**
+Raison : le prototype bascule en wolof pour le Sénégal ; le guide d'utilisation (source de vérité n° 2) est en français et les assertions portent sur ses textes.
+Alternative écartée : asserter sur les textes wolof — fragile, et non couvert par le guide.
+
+**Deux boutons recouverts sur Pixel 7 sont actionnés par `dispatchEvent('click')`, avec renvoi vers `a-traiter.md`.**
+Raison : caractériser la logique (like, commentaire) sans corriger le CSS du prototype, interdit en phase 01.
+Alternative écartée : `click({ force: true })` — clique aux coordonnées, donc sur l'élément qui recouvre.
