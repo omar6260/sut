@@ -1,0 +1,21 @@
+{
+  "name": "suktum",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Suktum — réseau social vidéo pour le Sénégal et l'Afrique de l'Ouest. Migration du prototype vers Firebase.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test:e2e": "playwright test",
+    "emulators": "firebase emulators:start --project suktum-dev",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project suktum-dev \"node --test tests/rules\""
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "firebase-tools": "^15.30.1"
+  }
+}

@@ -53,7 +53,8 @@ docs/journal/           journal des phases, décisions, a-traiter.md
 ```
 
 ## Commandes
-- `npm run build` — assemble `src/legacy` en `dist/index.html`
+- `npm run build` — assemble `src/legacy` en `dist/index.html` (copie du prototype tant que `src/legacy` est vide)
+- `npm run serve` — sert `dist/` sur http://localhost:5173 (lancé automatiquement par Playwright)
 - `npm run test:e2e` — Playwright
 - `npm run emulators` — émulateurs Firebase
 - `npm run test:rules` — tests des règles Firestore

@@ -6,6 +6,9 @@ la mémoire du projet (`CLAUDE.md`), 6 sous-agents spécialisés (`.claude/agent
 
 ## 1. Installation (une seule fois)
 
+> **Fait le 2026-09-16** (commit `chore: import du prototype et du kit agents`, puis phase 00).
+> Reste à déposer les deux `.docx` dans `docs/source/` — voir `docs/source/README.md`.
+
 ```bash
 mkdir suktum && cd suktum && git init
 # Copier le contenu de ce kit à la racine du dépôt (y compris le dossier caché .claude)

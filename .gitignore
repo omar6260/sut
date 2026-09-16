@@ -1,0 +1,15 @@
+node_modules
+dist
+.env*
+*.log
+firebase-debug.log
+.firebase/
+functions/lib
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
+# Système
+.DS_Store
