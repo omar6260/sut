@@ -2,11 +2,11 @@
 
 Classes définies dans `docs/ARCHITECTURE-CIBLE.md`. En cas de doute, SERVEUR_SEUL.
 
-- **SERVEUR_SEUL** : 73
-- **PRIVE** : 39
-- **ADMIN** : 38
-- **PUBLIC_PROPRIETAIRE** : 30
-- **PARTICIPANTS** : 23
+- **SERVEUR_SEUL** : 84
+- **ADMIN** : 41
+- **PRIVE** : 41
+- **PUBLIC_PROPRIETAIRE** : 37
+- **PARTICIPANTS** : 25
 
 Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lectures** et les écritures du propriétaire passent par les règles Firestore ; dans presque tous les cas, un ou plusieurs **champs** de ces documents (statut, prix, compteurs) restent SERVEUR_SEUL — voir la justification et `logique-sensible.md`.
 
@@ -183,6 +183,31 @@ Lecture : « PUBLIC_PROPRIETAIRE » ou « PARTICIPANTS » signifie que les **lec
 | sellerrating | SERVEUR_SEUL | Éligibilité (acheteur + livré + unique) vérifiée côté client (l.21617-21619) et déclenche le badge vendeur recommandé (l.22084). |
 | series | SERVEUR_SEUL | Catalogue payant écrit par l'admin (l.34203) mais lu par tous (l.34530) ; prix/coinPrice/freeEpisodeCount pilotent les déblocages (l.34490). |
 | seriesprogress | PRIVE | Progression personnelle `shared=false` (l.34625), lue seulement par le spectateur (l.34537). |
+| seriespurchase | SERVEUR_SEUL | Achat enregistré côté client sans aucun paiement ni vérification (l.34644) et sommé dans le chiffre d'affaires (l.35044-35046). |
+| seriesrating | PUBLIC_PROPRIETAIRE | Clé `seriesId__username`, seul le noteur écrit (l.21601), lecture publique pour l'affichage (l.21610) ; garde « a regardé/acheté » (l.21596) à recontrôler serveur. |
+| seriessubscriber | PUBLIC_PROPRIETAIRE | Clé `seriesId__username`, écriture/suppression par l'abonné seul (l.34498-34504) ; lecture par le créateur/système pour notifier (l.34519). |
+| servicebooking | SERVEUR_SEUL | La réservation retire un créneau du produit du vendeur et fige un prix (l.27572-27577) : transaction atomique + calcul de revenu (l.24256-24259). |
+| settings:<auto-acceptation> | ADMIN | Interrupteurs décidant la validation automatique d'abonnements/inscriptions (l.32203, 32213, 32223, 32327) : lus et appliqués uniquement par Functions. |
+| settings:<clés API> | SERVEUR_SEUL | Clés lues par tout client et injectées dans des `fetch` navigateur (l.8046-8051, 26369-26373) : à déplacer en secrets de Functions, jamais lisibles côté client. |
+| settings:<interne admin/alertes/audit> | ADMIN | Données de gouvernance (chaîne d'audit l.28936-28940, seuils l.7103, réunions l.33504) sans usage utilisateur ; intégrité de l'audit impose l'écriture par Functions. |
+| settings:<plateforme/modération> | SERVEUR_SEUL | Lecture publique nécessaire (maintenance l.29716, CGU l.8605, logo l.7260) mais écriture réservée : le garde `isGenuineOwnerSession` est un flag client (l.36049). |
+| settings:<préférences privées> | PRIVE | shared=false, propriétaire seul (l.7309, 7472, 8361) ; username/deviceId (l.7890) deviennent la session Firebase Auth, pas un document. |
+| settings:<rôles et accès> | SERVEUR_SEUL | Hash du PIN et listes de rôles avec pinHash lisibles/modifiables par tous (l.28820, 29823, 29877, 36997) : remplacés par Auth + custom claims via fonction super-admin. |
+| settings:<tarifs et commissions> | SERVEUR_SEUL | Taux/prix lus côté client pour calculer commissions et créditer des pièces (l.7233-7236, 26635, 34671) ; écriture admin (l.30684) via Functions, lecture publique tolérée. |
+| sfx | SERVEUR_SEUL | Écriture réservée au propriétaire de la plateforme (l.36224, 36240) mais lecture par tous les créateurs (l.36250) ; audio 5 Mo à mettre en Storage. |
+| sharedfeed | PARTICIPANTS | Document à deux membres userA/userB (l.27753) modifié par l'un ou l'autre (l.27764, 27797, 27812) ; règle « membres listés ». |
+| sharedresource | PUBLIC_PROPRIETAIRE | Auteur seul écrit (l.20351), lecture par tous les formateurs (l.20361) ; contrôle du rôle formateur à ajouter (à vérifier). |
+| shareSignal | PRIVE | Signal d'algorithme personnel, écrit et lu uniquement par son auteur (l.15269, 10706) malgré shared=true. |
+| shopsubrequest | SERVEUR_SEUL | Demande d'abonnement payant : le passage à `approved` (l.16634) déclenche un abonnement de 30 jours sans preuve de paiement. |
+| shopsubscription | SERVEUR_SEUL | Abonnement conditionnant la visibilité de la boutique (l.16522-16525) créé par simple approbation client (l.16632) ; renouvellement/annulation à gérer serveur. |
+| sound | PUBLIC_PROPRIETAIRE | Média du créateur (l.9975) ; usageCount incrémenté par tous (l.9984) et featuredOnHome (l.36176) sortent du document (increment() / Function) car royalties = usageCount × taux (l.36189-36191). |
+| staterequest | SERVEUR_SEUL | L'approbation accorde `user.stateFunded` = accès Éducation gratuit (l.16989-16991) : décision admin exécutée par Function. |
+| story | PUBLIC_PROPRIETAIRE | Auteur seul écrit son contenu (l.11952, 12089) ; viewedBy (l.11993) devient sous-collection, mediaFlagged/suppression (l.32471, 32479) via Function ADMIN ; média en Storage. |
+| storyquestion | PARTICIPANTS | Deux membres fromUser/toUser (l.12054) ; le destinataire seul marque `answered` (contrôle l.12079). |
+| storywatchtime | PUBLIC_PROPRIETAIRE | Clé `storyId__viewer`, écrit par le spectateur seul (l.12106), lu par l'auteur de la story (l.12114). |
+| studentremoval | ADMIN | Demande traitée uniquement au back-office éducation (l.20846, 20851-20856) et effet sur l'inscription d'un tiers. |
+| studybuddyoptin | PUBLIC_PROPRIETAIRE | Booléen à clé `courseId__username` posé/retiré par l'élève seul (l.20556, 20560), lu par ses pairs (l.20543). |
+| submission | SERVEUR_SEUL | Note immuable avec historique de correction et garde-fou IA appliqués côté client (l.17894-17909) ; alimente bulletins et classements (l.19309, 20298). |
 | subscription | SERVEUR_SEUL | Droit Premium payant : expiresAt et prix écrits côté client (23595) et auto-approbation depuis le navigateur de l'abonné (23570) ; seule une Function doit activer/prolonger ; l'utilisateur ne doit pouvoir toucher que `cancelled` via Function. |
 | supplierpartnership | ADMIN | CRUD réservé au propriétaire de la plateforme par simple flag client `isGenuineOwnerSession` (35929) ; contacts commerciaux = données internes. |
 | suspensionappeal | ADMIN | Créé par un compte suspendu avant connexion (7430) puis résolu par l'admin qui réactive le compte (33783) ; la création doit passer par une Function (utilisateur non authentifié + anti-spam), la lecture/résolution par rôle admin. |

@@ -1,12 +1,13 @@
 # Logique sensible à migrer côté serveur
 
-260 sites, triés par ligne. Périmètre : pièces, achats, commissions, reversements, fonds créateur, badges payants, abonnements, enchères, codes promo, points de fidélité, rôles, sanctions, PIN/2FA/codes de secours, âge et Mode Familial, auto-acceptation. Chaque ligne devient une Cloud Function (phase 06) ou une règle de sécurité.
+294 sites, triés par ligne. Périmètre : pièces, achats, commissions, reversements, fonds créateur, badges payants, abonnements, enchères, codes promo, points de fidélité, rôles, sanctions, PIN/2FA/codes de secours, âge et Mode Familial, auto-acceptation. Chaque ligne devient une Cloud Function (phase 06) ou une règle de sécurité.
 
 | Ligne | Fonction | Préfixe | Règle métier résumée | Pourquoi côté serveur |
 |---|---|---|---|---|
 | 7056 | logSystemError | systemerror: | Tout client peut créer des entrées illimitées | Rate-limit / anti-pollution du journal à faire en Function |
 | 7208 | logUserLoginEvent | loginevent | Journal des connexions alimentant le flux d'activité admin (28957) | Journal falsifiable/supprimable côté client |
 | 7233-7236 | (récompense de connexion, à vérifier nom) | coinbalance | +settings:dailycoinreward pièces à chaque nouveau jour de connexion | Auto-crédit client (C2) ; à faire en Function avec anti-rejeu |
+| 7233-7237 | updateDailyStreak | settings:dailycoinreward, coinbalance: | crédit quotidien de pièces lu depuis settings et ajouté au solde côté client | monnaie virtuelle |
 | 7275 / 13688–13701 / 17255–17298 | checkAndSendLiveReminders / checkConferenceReminders | live | Rappels programmés envoyés par sondage setInterval 60 s depuis chaque navigateur ; met `reminderSent` | Tâche système exécutée par des clients arbitraires (doublons, coût de lecture `user:` complet 13693) |
 | 7400-7405 | logInAsExistingUser | banappeal | Un compte banni peut déposer une contestation avant toute authentification | Sanctions/appels = flux modération ; identité non prouvée côté client (C4) |
 | 7416-7421 | loginAsUser (réactivation automatique) | user | Levée automatique de suspension à l'expiration de `suspendedUntil` | Décision de sanction calculée par le client ; à faire par Function planifiée |
@@ -23,15 +24,19 @@
 | 7899-7901 | recordDeviceAccountLink | devicelink | Ajoute chaque compte connecté à la liste de l'appareil (MAX_ACCOUNTS_PER_DEVICE = 3 l.7889) | Identité et limite de comptes par appareil : doit être posée par le serveur à l'authentification |
 | 7976-7997 | deleteMyOwnAccount | accountarchive | L'utilisateur lit `sellerinternalnote:<soi>` (note interne admin, 7983) et la recopie dans son archive | Fuite d'une note interne admin vers le client ; suppression en cascade côté client |
 | 7992, 23210, 35761 | deleteMyOwnAccount / suppression admin | user | Suppression du doc utilisateur | Suppression de compte doit purger les sous-collections via Function (à vérifier : cascade absente) |
+| 8046-8051 / 26369-26373 / 26399 / 26473 / 21428 | generateVideoSubtitles / moderateImageWithCloudVision / (Video Intelligence) / (Yango) / (météo) | settings:<clés API> | clés Gemini, Vision, Video, Yango, OpenWeather utilisées dans des `fetch` navigateur | secrets exposés |
 | 8046-8066 | generateVideoSubtitles | videosubtitles | Clé `settings:geminiApiKey` lue côté client et envoyée dans un `fetch` à Google avec la vidéo base64 | Secret API exposé à tout utilisateur ; coût par appel non maîtrisé |
 | 8485-8504 | grantLiveAuthorization / revokeLiveAuthorization / approveLiveAuthRequest | user | `liveAuthorizedOverride` (droit de faire des lives) avec contrôle `adminScope` pays | Contrôle de périmètre régional côté client ; claim `country` |
 | 8867 | fetchPosts | post | filtre client des posts suspended, mediaFlagged, scheduled, blockedCountries, comptes en pause, postPrivacy (private/friends) | règles Firestore/Function doivent imposer ces filtres, sinon contenu modéré/privé lisible |
 | 8888 | releaseScheduledPosts | post | passage scheduled→published exécuté par n'importe quel client | cron serveur |
+| 9537-9547 / 32254-32260 | isAiAutoBlockEnabled / isAutoTriageReportsEnabled | settings:ai_auto_block, autoTriageReports | blocage automatique par IA et tri IA des signalements | modération automatique |
 | 9589 / 9605 | submitVideoForAIAnalysis / checkVideoAnalysisResult | videoanalysis: | Appel Google Video Intelligence avec `settings:google_video_api_key` ; flag → `post.suspended = true` | Clé API exposée au navigateur (C2) et modération automatique exécutée côté client |
 | 9617 | pollVideoAIAnalysis | post | suspension automatique si Video Intelligence détecte pornographie LIKELY (clé API dans settings) | clé API exposée ; modération IA côté serveur |
 | 10590 | publish | post | sensitive (contenu sensible, lié au Mode Familial à vérifier), downloadable, postPrivacy, poll, coCreator | drapeaux de visibilité/âge posés par le client ; modération serveur |
 | 11280-11294 | recordAdConversionIfAttributed | ad / adclickattribution | Attribution de conversion si commande < 1 h après clic | Métrique facturable calculée sur données locales |
 | 11453-11457 | createNotification | notif | Respecte `notificationPreferences[category]` du destinataire avant création | Préférence évaluée par l'émetteur, pas par le destinataire |
+| 11939-11962 / 32468-32481 | publishStory / approveMediaFlaggedStory, removeMediaFlaggedStory | story: | modération Cloud Vision/Video depuis le navigateur, `mediaFlagged` posé par l'auteur, levée par l'admin | modération et sanctions |
+| 12087-12089 / 11948-11950 | pinStoryToHighlights | story: | story permanente (pinned) vs 24 h (`expiresAt`) | expiration à faire respecter serveur (à vérifier) |
 | 13324-13334 | renderFeed (tri) | boost | Les posts boostés non expirés sont placés en tête du fil | Priorisation payante doit reposer sur des données non écrivables par le client |
 | 13534-13535 | createFollowRelationship | user: | followers/following symétriques ; palier 1M (13539) déclenche badge/cadeau | Compteurs d'audience falsifiables ; palier à récompense physique |
 | 13761, 24075 | notifyFollowersOfNewLive / notifyFollowersOfScheduledLive | livenotifypref | Le streamer notifie chaque abonné sauf opt-out `notifyAll === false` (lecture d'un doc privé d'autrui, shared=false) | Fan-out vers N abonnés depuis le navigateur ; à faire par Function |
@@ -43,6 +48,7 @@
 | 14930 | canUserCommentOnPost | post | commentRestriction (following/followers) + filterAllComments → status pending | règle d'accès aux commentaires à imposer serveur |
 | 15027-15029 | markThreadReadReceipt | threadreadreceipt: / user: | Accusé de lecture seulement si `readReceiptsEnabled` des deux côtés (27882) | Règle de confidentialité à vérifier côté serveur ; faible enjeu |
 | 15155-15160 | submitComment | autoblockedcomment | Image de commentaire modérée par `moderateImageWithCloudVision` (clé API côté client, à vérifier) ; si signalée → enregistrement avec l'image | Modération automatique et clé API tierce ne doivent pas tourner dans le navigateur |
+| 15269 / 10706-10713 | recordShareSignal / buildUserContentProfile | shareSignal: | signal de partage pondéré +2 dans l'algorithme « Pour vous » | faible enjeu ; pas d'obligation serveur |
 | 15397-15399 | approveTrainerRequest | trainerrequest: / user: | Attribution du rôle formateur + numéro de paiement Wave/OM copié sur le profil | Rôle et coordonnées de reversement ne doivent être écrits que par Function |
 | 15399, 15715 | approveTrainerRequest / excludeTrainer | user | Admin accorde/retire `isTrainer` + numéro de paiement formateur | Rôle et coordonnées de paiement modifiables par tout client |
 | 15426, 15438, 15448 | approveCourse / suspendCourse / deleteCourseCompletely | course | Validation, suspension/réactivation et suppression définitive d'un cours par l'admin, avec notifications et `logAdminAction` | Sanctions/modération = rôle admin vérifié par claim ; suppression en cascade (leçons, inscriptions) à faire en Function |
@@ -50,12 +56,16 @@
 | 15470–15485 | approveFlaggedLesson / deleteFlaggedLesson | lesson | Approbation/suppression admin d'une leçon signalée par l'IA | Rôle admin non vérifié côté stockage |
 | 15497 / 15515 | recordTrainerSnapshotsIfNeeded / ensureOwnTrainerSnapshot | trainersnapshot: | Snapshot quotidien piloté par `settings:lastTrainerSnapshot` | Tâche planifiée déclenchée par le premier client du jour ; doit être un cron serveur |
 | 16017 | recordProfileVisit | profilevisit | opt-out réciproque via settings:privateProfileBrowsing (shared=false) et isGenuineOwnerSession | réciprocité vérifiée uniquement client ; Function pour respecter l'opt-out |
+| 16522-16545 | isShopSubActive / cancelShopSub | shopsubscription: | visibilité de la boutique conditionnée à `expiresAt` ; annulation/réactivation du renouvellement | abonnement/expiration à faire respecter serveur |
+| 16610-16618 | subscribeToShop | shopsubrequest:, settings:shop_sub_price | demande d'abonnement Boutique au prix courant, instructions de paiement manuel | prix lu côté client |
+| 16628-16638 | approveShopSubRequest | shopsubscription: | l'approbation crée 30 jours d'accès (SHOP_SUB_DURATION_DAYS) ; aucune vérification de rôle dans la fonction | validation de paiement = décision serveur |
 | 16692 | grantSelfInstantTrainer | user | N'importe quel utilisateur s'attribue `isTrainer` + `isAdminTrainer` (publication de cours sans validation) | Rôle auto-attribué : doit être un custom claim posé par Function super-admin |
 | 16733-16746 | cancelEduSubscription / reactivateEduSubscription | edusubscription | bascule `cancelled` ; « renouvellement » n'existe pas dans le code (à vérifier) | logique d'abonnement récurrent à porter côté serveur |
 | 16776-16783 | isEducationSubActive | edusubscription | accès Éducation = adminEducationBypass ‖ user.stateFunded ‖ essai 7 j (TRIAL_DURATION_MS l.16709) ‖ abonnement non expiré | contrôle d'accès payant entièrement client |
 | 16834-16841 | import CSV institutionnel | enrollment / user | met `stateFunded = true` et inscrit d'office des comptes tiers | attribution d'un statut financé par l'État (gratuité totale) |
 | 16853-16862 | generateActivationCodes | activationbatch / activationcode | Génération de 1 à 200 codes stockés en clair, shared=true | Secrets exposés à tout client ; doit être ADMIN/Function |
 | 16946-16961 | redeemActivationCode | activationcode | Code à usage unique ; s'il est valide → `user.stateFunded = true` (accès Éducation financé par l'État) puis logAdminAction depuis la session utilisateur | Octroi d'un droit payé par un tiers ; unicité non atomique ; codes lisibles par safeGet shared |
+| 16984-16994 | approveStateFundedRequest | staterequest:, user: | accorde `stateFunded` = accès Éducation gratuit | droit d'accès payant |
 | 16989, 16835, 16969 | approveStateFundedRequest / importStudentListCSV / grantStateFundedAccess | user | Accès Éducation financé par l'État (`stateFunded`) | Droit payant accordé côté client → Function admin |
 | 17004-17012 | subscribeToEducationSpace | edusubrequest | si `settings:autoApproveEduSub` = true (l.32203), le client du demandeur exécute lui-même approveEduSubRequest | auto-acceptation d'un abonnement payant exécutée par le bénéficiaire |
 | 17030-17036 | approveEduSubRequest | edusubscription / edupurchase / edusubpayment | calcule `expiresAt = now + 30 j` (EDU_SUB_DURATION_DAYS l.16666), crée abonnement + achat + paiement | date d'expiration et revenus fixés par le navigateur ; 4 écritures non atomiques |
@@ -67,6 +77,7 @@
 | 17656-17662 | enrollInCourse | enrollment | inscription `pending` puis approveEnrollment côté client si `settings:autoApproveEnrollment` (l.32223) | auto-acceptation d'un achat exécutée par l'acheteur |
 | 17763 | addExerciseToCourse | exercise | stocke `correction` (corrigé) dans le même doc que la consigne, lu par les élèves inscrits | fuite du corrigé si affiché ; à séparer (à vérifier rendu côté élève) |
 | 17802-17806 / 32612 | toggleExerciseSearchValidation / validation admin | exercise | `validatedForSearch` pilote l'indexation IA (contentembedding l.17766) | décision de modération/rôle formateur-admin |
+| 17887-17909 | submitGrade | submission: | note 0-20, immuable sauf justification tracée, alerte si écart ≥ 8 avec suggestion IA | intégrité des notes/bulletins |
 | 17993-17998 | createCourse | course | `status = 'active'` immédiat si `user.isAdminTrainer`, sinon `pending_review` ; `price` libre saisi par le formateur | Auto-acceptation dépendant d'un flag de rôle lisible/modifiable côté client ; le statut initial doit être fixé par le serveur |
 | 18325-18337 | awardStudentBadge | badge | Formateur décerne un badge à un élève inscrit (`enrollment` approuvée, 18320) + notification + logAdminAction depuis session formateur | Vérification « formateur de ce cours » et journal audit à faire serveur |
 | 18426–18431 / 18086 / 19320 | submitFullExamGrade / buildStudentsReportRows / classement mensuel | fullexamsubmission | Note sur 20 attribuée par le formateur ; alimente moyennes, classement et certificats | Une note écrite côté client peut être auto-attribuée par l'élève |
@@ -88,9 +99,11 @@
 | 20163-20167 | toggleRestrictedMode | parentlink | Le parent lié active `restrictedmode:<élève>` (Mode Familial) | Protection des mineurs : le lien et le mode doivent être validés serveur |
 | 20163-20169 | toggleRestrictedMode | restrictedmode | seul un parent avec `parentlink` approuvé peut basculer le Mode Familial d'un élève | contrôle d'autorisation uniquement côté client |
 | 20207-20213 | approveParentLink | parentlinkrequest / parentlink | L'élève auto-approuve la demande et crée le lien | Ouvre l'accès à ses cours/notes/badges à un tiers (20224 et suite) |
+| 20394-20404 | importSharedResource | sharedresource:, lesson: | import d'une ressource comme leçon dans un cours du formateur courant | contrôle « cours à moi » côté client (à vérifier) |
 | 20583-20585 | ensureCertificateVerificationCode | certverification | Pose user.isAlumnus lors de la première émission | Statut de compte = serveur |
 | 20679-20686 | (attestation de cours) | conferenceattendance | Taux de présence = sessions du formateur où l'élève figure dans `attendees` / total, comparé à `certMinAttendance` | Éligibilité à une attestation calculée depuis des docs listables et écrits client ; calcul en Function |
 | 20689-20701 | renderCourseCertificate (à vérifier nom) | certcodelookup, certverification | Seuils certMinAverage / certMinAttendance vérifiés client, puis code SG- généré et attestation écrite | Émission de diplôme/attestation officielle doit être serveur |
+| 20851-20858 | approveStudentRemoval | studentremoval:, enrollment: | l'admin retire un élève d'un cours (delete enrollment) | sanction/inscription |
 | 20921-20925 | startVoiceCall | voicecalllog | Refus d'appel si `user.voiceCallsBlocked` ; salle Jitsi publique nommée de façon prévisible (`suktum-call-<a>-<b>`) | Préférence de blocage contournable côté client ; nom de salle devinable (C7) |
 | 21104-21114 | renderGroupedDelivery | deliverycircle | Tout membre du cercle voit les commandes non livrées (order:) des vendeurs membres | Expose des commandes (SERVEUR_SEUL) à des tiers ; filtrage à faire en Function |
 | 21159-21161 | generateSellerCoachReport (à vérifier nom) | sellercoachreport | appel IA (`callAIProvider`) avec CA et notes du vendeur | clé API IA exposée dans le navigateur |
@@ -98,6 +111,7 @@
 | 21488-21496 | renderSellerDashboard (à vérifier nom) | refundrequest | une demande `pending` exclut la commande des gains et reversements dus au vendeur | calcul de reversement manipulable en créant/supprimant un litige côté client |
 | 21558-21568 | rateBuyerForOrder | buyerrating | Seul le vendeur d'une commande livrée peut noter, une seule fois | Contrôle d'unicité et de rôle non fiable côté client |
 | 21571-21580 | checkReliableBuyerBadge | buyerrating | ≥5 notes et moyenne ≥4 → badge reliableBuyer sur le compte | Attribution de badge de confiance = serveur |
+| 21594-21597 | rateSeries | seriesrating: | note autorisée seulement si épisode vu ou série achetée | garde purement client |
 | 21616-21630 | rateSellerForOrder | sellerrating | note possible uniquement par l'acheteur, commande livrée, une fois ; calcule `shippingDays` | conditions vérifiées côté client seulement |
 | 21767, 21775, 7441, 7481 | setSecurityPin / removeSecurityPin / login PIN | user | PIN de sécurité stocké EN CLAIR dans `user.securityPin` et comparé côté client | Secret lisible par tous (shared=true) ; hash + vérification serveur |
 | 21788-21792, 22045-22048, 22061 | submitKycVerification / approveKyc / rejectKyc | user | Photo de pièce d'identité base64 (`kycDocument`) et statut KYC dans le doc partagé | Donnée personnelle sensible lisible par tout connecté ; Storage privé + statut posé par Function |
@@ -126,6 +140,7 @@
 | 23850-23858 | approveBoostRequest | boost, boostpayment | Admin active le boost (expiresAt calculé client) et journalise le paiement | Validation paiement + mise en avant payante = Functions |
 | 24030–24033 / 8444 / 8506 | openLiveQuickStartPanel / requestLiveAuthorization / approveLiveAuthRequest | live + liveauthrequest | Seuil LIVE_FOLLOWER_THRESHOLD (1000 abonnés) ou `liveAuthorizedOverride` accordé par admin | Rôle/dérogation posée sur `user:` par le client admin sans claim |
 | 24056–24061 / 32186 | startLiveFromQuickPanel / isAutoApproveLivesEnabled | live | Auto-acceptation : `status` = 'approved' si `settings:autoApproveLives` === true, sinon 'pending' | Un client peut écrire `status:'approved'` directement ou lire/modifier le réglage |
+| 24254-24259 | confirmEndMyLive | servicebooking: | revenu du live = commandes + réservations liées (`sourceLiveId`) | calcul de revenu |
 | 24311 / 25229–25232 | endMyLive / openLiveChatTranscriptDetail | livechattranscript | Lecture du compte-rendu réservée streamer + abonnés ; `saveTranscript` opt-out | Restriction de lecture évaluée client sur un doc shared=true |
 | 24318 | endMyLive | livehistory | `viewerCount` = nombre de clés `liveviewer:` au moment de la fin | Statistique d'audience calculée client (à vérifier si utilisée pour reversements) |
 | 24323-24329 | (fin de live) | conferenceattendance | À la fin d'un live `isEducational`, l'hôte enregistre `attendees` = clés `liveviewer:` restantes | Présence dérivée d'un compteur de viewers manipulable ; à consolider par le serveur |
@@ -147,6 +162,7 @@
 | 25543 | contributeToCagnotte | cagnottecontribution | Contribution en FCFA enregistrée sans paiement vérifié | Flux financier : paiement et increment() du total côté Functions |
 | 25551-25555 | closeCagnotte | cagnotte | Seul le créateur clôt la cagnotte | OK côté règles (owner) mais clôture d'une collecte de fonds à journaliser |
 | 25680–25683 / 25735 | renderLiveEarningsDashboard / checkRewardTierMilestone | gift + live | Gains nets du streamer et paliers de récompense calculés à partir des gifts | Calcul de reversement au créateur |
+| 25792-25804 | (fonds créateurs) | settings:creatorFundBudget, creatorFundRatePer1000Views | rémunération des créateurs par 1000 vues | reversements |
 | 25802-25836 | computeCreatorFundDistribution | creatorfundpayout | Montant = vues/1000 × taux × multiplicateur qualité (0,5–1,5 selon rétention), plafonné au budget | Calcul de reversement financier fait dans le navigateur à partir de settings: et post: (reversements, commissions) |
 | 25852 | confirmCreatorFundDistribution | creatorfundpayout | L'admin crée un payout status 'pending' par créateur et notifie le montant | Création de créances financières par un client dont le rôle admin n'est pas vérifié par claim (reversements, rôles) |
 | 25886-25896 | submitSelfServeAd | ad | Annonce utilisateur en `pending_review`, CPM tiré de `settings:selfServeCpm` (25862) | Tarif et statut de modération doivent être posés par le serveur |
@@ -156,6 +172,7 @@
 | 26201–26216 | approveLive / rejectLive | live | Modération admin des lives (validation/refus) | Rôle admin non vérifié côté stockage |
 | 26479-26498 | requestYangoDelivery (à vérifier) | order | Appel API Yango avec clé `Bearer apiKey` depuis le navigateur | Secret API exposé côté client (C2) |
 | 26567-26575 | getContentEmbedding | contentembedding | Appel `fetch` Gemini `text-embedding-004` avec `settings:geminiApiKey` lue en partagé | Secret d'API exposé dans le navigateur ; l'embedding doit être calculé par Function |
+| 26631-26637 / 25429 / 23906-23909 | getCommissionRate / getGiftCommissionRate / getBoostPrice, getTicketCommission | settings:<tarifs et commissions> | taux de commission boutique, cadeaux (35 % par défaut), affiliation (20 %), billets, prix boost | commissions et reversements |
 | 26749-26754, 27230 | computeLoyaltyDiscount | loyaltypoints | Remise = points × 5 FCFA, pointsUsed = ceil(discount/5), appliquée au total de la commande | Calcul financier déterminant le total payé |
 | 26798 | respondToNegotiation | negotiation | Acceptation d'offre : aucune vérification que l'acteur est bien le vendeur (seul `otherParty` est déduit) | L'acheteur peut auto-accepter sa propre offre (à vérifier : pas de garde sur currentUser) |
 | 26846-26851 | saveBundleDiscount | bundlediscount | Vendeur définit une remise 1-90% dès N articles | Bornes de promo à revalider serveur |
@@ -174,6 +191,7 @@
 | 27253-27263 | (placeOrder, bloc affiliation) | affiliatesale | Commission créateur = total × `affiliateCommissionPercent`, frais plateforme = `settings:affiliatePlatformFeePercent` (26630), net reversé au créateur | Commissions et reversements calculés et écrits par l'acheteur |
 | 27270, 27275 | placeOrder (à vérifier) | loyaltypoints | Débit des points utilisés puis crédit de floor(total/100) points gagnés (lecture → réécriture, non atomique) | Solde manipulable ; double crédit si concurrence |
 | 27279 | submitOrder | product | décrément du stock et notification stock_out | double vente possible en concurrence (dernier écrit gagnant) |
+| 27569-27578 | bookServiceSlot | servicebooking: | retrait du créneau + prix figé + notification vendeur | double réservation et prix manipulables |
 | 27967-27970 | (signalement de bug) | devtask | Quota de 5 signalements par utilisateur et par 24 h | Limite calculée côté client, contournable (anti-spam) |
 | 28009 | submitTicket | ticket: | `isPriority` = compte à forte visibilité (isHighVisibilityAccount, 21741) | Priorité de support déterminée par le client ; à recalculer côté serveur |
 | 28096-28102 | moveDevTask | devtask | Passage à 'done' d'un bug notifie son auteur | Action réservée à l'équipe technique/admin (rôles) |
@@ -182,15 +200,21 @@
 | 28720 | sendThreadMessage | dm | Envoi bloqué si blocage dans un sens ou l'autre (isBlockedEitherWay) | Règle de blocage contournable côté client ; à vérifier en règle/Function |
 | 28921-28925 | logAdminLogin | adminloginlog | Journalise nom/rôle/scope de la session admin depuis variables globales | Rôles : la source de vérité doit être les custom claims |
 | 28932-28940 | logAdminAction | auditlog + settings:lastAuditLogHash | Rôle acteur déduit de variables client (isPayoutSpecialist, isModerator, adminScope) ; chaîne SHA-256 `previousHash → entryHash` | Intégrité du journal nulle si le client calcule le hachage et écrit le chaînage |
+| 28933-28941 | logAdminAction | settings:lastAuditLogHash, auditlog: | chaîne de hachage SHA-256 des actions admin | intégrité de l'audit |
 | 28942-28954 | verifyAuditLogChainIntegrity | auditlog | Recalcul de la chaîne ; entrées sans hash ignorées | Un attaquant peut écrire des entrées sans `entryHash` pour passer sous le radar |
 | 28969-28972, 30485-30487 | (journal d'activité admin, statistiques) | dm | L'admin liste et lit tous les fils privés pour compter les messages | Confidentialité des DM : agrégation à faire côté serveur, jamais par lecture client des fils |
+| 29105-29113 | toggleTransactionsFreeze | settings:transactionsFrozen | gel global des commandes/inscriptions après `confirmWithPinReentry` | kill switch de plateforme |
 | 29369-29404 | toggleRecurringTaskDone | recurringtaskdone | checklist opérationnelle du super-admin | données de back-office réservées au rôle admin |
 | 29592–29596 | checkBigOrderAlert | importantalert | Alerte admin si `total >= getBigOrderThreshold()` | Seuil et alerte de fraude générés par la session de l'acheteur |
+| 29712-29728 | (overlay maintenance) / toggleMaintenanceMode | settings:maintenanceMode | mode maintenance contourné si `isGenuineOwnerSession` (flag client) | interrupteur de plateforme |
 | 29754-29757 | renderAdminLoginLog | adminloginlog | « Réservé au propriétaire » gardé par `isGenuineOwnerSession` (28914) | Garde purement client ; données lisibles via storage shared |
+| 29816-29901 | checkAdminPin | settings:adminpin_hash, admin_backup_codes, regionaladmins, moderators | connexion admin par comparaison SHA-256 non salé côté client ; codes de secours marqués `used` ; rôles/scope pays/domaine dérivés de listes partagées | authentification et rôles (custom claims) |
 | 29977-29990 | logFailedAdminAccessAttempt | failedaccessattempt | ≥ 5 échecs/h → écrit `settings:criticalAlertUnauthorizedAccess` | anti-brute-force PIN admin contournable par un client qui n'appelle pas la fonction |
+| 30056-30068 | (confirmWithPinReentry, à vérifier) | settings:adminpin_hash, moderators, payoutspecialists | re-vérification du PIN pour actions critiques via lecture directe du hash | PIN/2FA |
 | 30120-30122 | loadEducationOverview | edusubpayment | somme `amount` en « Revenu abonnements », visible seulement si `adminScope === 'all' && !isModerator` (client) | rôle et agrégat financier côté client |
 | 30637 | adminToggleSuspendPost / adminDeletePost (30619) | post | suspension et suppression de publications | sanctions : Function ADMIN avec claim + auditlog |
 | 30676, 30684-30686 | logCommissionChange / saveCommissionRate | commissionhistory | Changement du taux `settings:commission_rate` (0-100) et journalisation old→new par l'admin | Le taux de commission conditionne tous les calculs de commande ; écriture et audit réservés aux Functions admin |
+| 30736-30747 | (comptes de paiement) | settings:payment_accounts | numéros Wave/OM, PayPal, NINEA, compte bancaire de la plateforme | données de paiement |
 | 30785 / 29304 | loadAdminDashboard (revenus) / renderCountryComparison | gift | Chiffre d'affaires plateforme et par pays sommés à partir des champs client `commissionAmount`/`amount` | Reporting financier basé sur des valeurs que l'utilisateur contrôle |
 | 30816, 34780-34793, 34947, 23792, 21837 | grantOfficialPartner / toggleCreatorOfTheMonth / saveInstitutionalPartnerLabel / approveBadgeRequest / approveAudienceCreatorBadge | user | Badges et labels officiels (partenaire, créateur du mois, vérifié) | Distinctions de confiance attribuables par tout client → Function admin |
 | 30876 | publishOfficialNews | officialnews | Publication au nom de « Suktum » par `currentAdminName` | Contenu officiel : usurpation possible sans claim admin |
@@ -206,6 +230,7 @@
 | 32140-32143 | preventivelySuspendFromBlockSpike | user: | Suspension préventive + suppression des lives de l'utilisateur | Sanction admin |
 | 32153-32176 | checkLiveReportThreshold | report | N signaleurs distincts ⇒ avertissement / pause chat 30 min / coupure du live (seuils `settings:liveReport*`) | sanction automatique déclenchée par le client du signaleur ; seuils lisibles/modifiables côté client |
 | 32155–32173 | checkLiveReportThreshold | live | Sanctions automatiques (avertissement / cool-down 30 min / coupure) selon seuils `getLiveReportThresholds` | Sanction exécutée par le navigateur du signaleur, sans autorité |
+| 32186-32223 / 32327-32328 | isAutoApprove* / (mode autonome) | settings:<auto-acceptation> | validation automatique lives, abonnements Éducation/Premium, inscriptions, formateurs | décision d'accès payant prise par le client demandeur |
 | 32264-32297 | maybeAutoTriageReport | report | l'IA décide suspend/dismiss et appelle resolveReport (suppression du post/produit) | appel IA avec clé API depuis le navigateur + sanction automatique |
 | 32306-32320 | maybeAutoValidateTrainer | trainerrequest: | Si `settings:autoValidateTrainers`, l'IA (callAIProvider) approuve la candidature depuis le client du candidat | Auto-acceptation d'un rôle exécutée par le bénéficiaire, avec clé IA côté client |
 | 32453-32458 | approveBlockedComment | autoblockedcomment / post: | Faux positif : l'admin republie l'image comme commentaire et supprime le blocage | Décision de modération = ADMIN/Function |
@@ -228,20 +253,25 @@
 | 33907 | renderDecisionLog | decisionlog | Bouton d'archivage réservé au super-admin via classe CSS admin-super-only | Restriction purement visuelle ; deleteDecisionLogEntry l.32837 est appelable par tout client (rôles) |
 | 33938 / 33947 / 33957 / 33978 | addChangelogEntry / deleteChangelogEntry / addKnowledgeBaseArticle / deleteKnowledgeBaseArticle | internalchangelog + knowledgebase | Écriture/suppression réservées au back-office (`currentAdminName`, classe CSS `admin-super-only`) | Rôle admin/super-admin vérifié uniquement par l'UI |
 | 34090, 35665-35673, 35698-35724, 32803, 33749 | toggleUserAccountSuspension / issueStrike / setUserStatus / warnLiveStreamer / resolveBanAppeal | user | Suspension, bannissement, strikes, déblocage forcé avec `logPrivilegeException` | Sanctions = ADMIN ; un client peut se réactiver en écrivant `status:'active'` |
+| 34259-34268 / 34641 | fetchCoinPacks / purchaseCoinPack | settings:coinpacks | packs de pièces (coins, priceFcfa) crédités au solde sans paiement | achats |
 | 34490-34496 | isEpisodeUnlocked | series | épisode accessible si releaseAt passé et (série achetée, ou index < freeEpisodeCount, ou `episodeunlock:`) | contrôle d'accès payant reposant sur des clés `shared=false` écrites par le client |
 | 34493-34495 | isEpisodeUnlocked | episodeunlock | accès épisode = releaseAt passé ‖ série achetée ‖ index < gratuits ‖ doc unlock présent | gate de contenu payant |
 | 34509-34523 | checkNewlyReleasedEpisodes | episodereleasenotified | à chaque ouverture du feed, tout client parcourt toutes les séries et envoie les notifications aux abonnés | sondage client global (coût lectures) + doublons de notifications entre clients |
+| 34510-34524 | checkNewlyReleasedEpisodes | seriessubscriber:, episodereleasenotified: | tout client qui ouvre l'app notifie les abonnés et pose le flag « notifié » | doit être une Function planifiée |
 | 34541, 34590 | openSeriesDetail | series | épisode `sensitive` masqué si Mode Familial actif | règle âge/Mode Familial appliquée côté client |
+| 34641-34648 | purchaseSeries | seriespurchase: | achat d'une série enregistré avec `price` copié de `series:` sans paiement ni contrôle | n'importe qui se donne l'accès et gonfle le CA |
 | 34642-34650 | purchaseSeries | series | achat de la série enregistré au prix `s.price` sans aucun paiement vérifié | achat/paiement |
 | 34650-34656 | purchaseCoinPack | coinbalance | Pièces créditées immédiatement sans paiement vérifié ; coinpurchase journalisé | Achat de pièces = webhook de paiement + transaction serveur |
 | 34651-34656 | purchaseCoinPack | coinpurchase | Crédite `coinbalance:` de `pack.coins` puis écrit le reçu sans aucune vérification de paiement (packs lus dans `settings:coinpacks` 34259) | N'importe qui peut se créditer des pièces gratuitement ; seule une Function de webhook de paiement idempotente doit créditer et émettre le reçu |
 | 34660-34664 | unlockEpisodeWithCoins | coinbalance | Débit du solde et écriture episodeunlock | Dépense de monnaie virtuelle = transaction serveur |
 | 34661-34664 | unlockEpisodeWithCoins | episodeunlock | vérifie solde, écrit `coinbalance - coinPrice` puis crée le déverrouillage (shared=false) | pièces : n'importe qui peut sauter le débit ; besoin d'une transaction |
 | 34662-34669 | unlockEpisodeWithCoins | series | débit de `coinbalance:` du `coinPrice` de l'épisode puis écriture `episodeunlock:` | pièces / solde modifié par le client (lecture → modification → réécriture) |
+| 34669-34676 | startRewardedAd | settings:adcoinreward, adcoindailylimit | pièces gagnées par pub, limite journalière stockée shared=false par l'utilisateur | monnaie + plafond contournable |
 | 34682-34700 | startRewardedAd | coinbalance | Limite quotidienne adcoindailylimit et crédit adcoinreward après minuterie client | Compteur et récompense manipulables ; serveur avec preuve de visionnage |
 | 34872 | publishCommunityGroupPost | communitypost | Seul un membre (`g.members.includes(currentUser)`) peut publier | Contrôle d'appartenance uniquement client ; à porter en règle Firestore avec `get()` sur le groupe |
 | 35034, 35151 | renderFinanceDashboard / exportFinanceReport | refundrequest | un litige `resolved` retire la commission de la commande du chiffre plateforme | calcul financier admin |
 | 35041-35043 / 35158 | tableau financier plateforme | edupurchase | somme `price` ; filtre sur `p.createdAt` alors que le doc n'a que `purchasedAt` (l.17034) — bug probable (à vérifier isWithinFinancePeriod(undefined)) | calculs de revenus doivent être agrégés serveur |
+| 35044-35046 / 35161-35163 | renderFinanceDashboard / exportFinanceReport | seriespurchase: | CA séries = somme des `price` ; filtre sur `p.createdAt` alors que le doc n'a que `purchasedAt` (à vérifier) | agrégats financiers à calculer serveur |
 | 35047 | renderFinanceDashboard | coinpurchase | Somme `priceFcfa` filtrée par `isWithinFinancePeriod(p.createdAt)` alors que le doc porte `purchasedAt` (34656) — filtre de période probablement cassé (à vérifier) | Agrégats financiers à calculer par Function/agrégation serveur, pas par lecture de toute la collection |
 | 35050-35052 | (bilan financier admin) | ad | `adRevenue = Σ ad.spent` intégré au revenu total plateforme | Un compteur client-modifiable devient un chiffre comptable |
 | 35053 | renderFinanceDashboard / exportFinanceReport | platformexpense, premiumpurchase, recentlyviewed | agrège commissions, revenus Premium/Édu/Séries/Pièces/Pub, dépenses, DAU/MAU, entonnoir | lecture de toutes les collections financières par le client ; agrégation en Function ADMIN |
@@ -252,9 +282,12 @@
 | 35468-35473 | requestCoinWithdrawal | coinbalance | Débit immédiat du solde puis demande de retrait (coinwithdrawal) | Reversement d'argent réel = transaction serveur + validation admin |
 | 35478-35486 | requestCoinWithdrawal | coinwithdrawal | Vérifie `amount <= balance` puis débite `coinbalance:` côté client avant de créer la demande `pending` avec téléphone Wave/Orange Money | Solde et débit doivent être transactionnels côté serveur ; PII (téléphone) ne doit pas être listable par tous |
 | 35498, 35515-35523 | renderCoinWithdrawalSpecialistList / markCoinWithdrawalPaid | coinwithdrawal | Reversement manuel : l'admin confirme (`confirm`) puis passe `status='paid'`, `paidBy=currentAdminName`, `logAdminAction` ; rôle vérifié uniquement par `verifyCurrentAdminSessionStillValid` client | Reversement = action admin financière ; claim admin vérifié en Function, journal d'audit serveur |
+| 35634-35641 / 13296 | toggleShadowBan / (fil) | settings:shadowbannedusers | liste de comptes en visibilité réduite, lue par tous les clients pour filtrer le fil | sanction + fuite de la liste |
 | 35652-35670 | issueStrike | userstrike: / user: | 1er strike = avertissement, 2e = suspension automatique, 3e+ = bannissement | Escalade de sanctions par simple compte de docs ; doit être transactionnelle et réservée aux admins |
 | 35852-35868 | checkScheduledSystemNotifications | scheduledsystemnotif | envoi d'une notification à tous les utilisateurs à l'heure programmée | diffusion massive déclenchée par n'importe quel client, risque de doublons |
 | 35862-35869 | checkScheduledSystemNotifications | systemupdatelog: / notification: | Envoi planifié à tous les utilisateurs déclenché par n'importe quel client | Envoi massif de notifications = Function planifiée |
+| 36189-36207 | renderAdminRoyaltyTracking / saveRoyaltyRate | settings:soundRoyaltyRatePerListen, sound: | royalties artiste = usageCount × taux ; usageCount incrémenté par les clients | calcul financier sur compteur non fiable |
+| 36223-36244 / 36048-36063 | addSfx / deleteSfx / savePlatformLogo | sfx:, settings:platformLogo | écriture réservée au propriétaire via flag client `isGenuineOwnerSession` | rôle vérifié côté client seulement |
 | 36543-36551 | createCourseChallenge | challenge | Formateur crée un défi de cours et notifie tous les élèves approuvés | Rôle formateur et fan-out de notifications = serveur |
 | 36566-36577 | createWorkGroup | workgroup | Seul le formateur/co-formateur/remplaçant (garde l. 18209) crée des groupes et notifie les élèves | Garde côté client ; vérifier `course.trainerUsername`/`coTrainers` serveur |
 | 36632-36638 | saveCertificateConditions | course | Seuils `certMinAverage` (0-20) et `certMinAttendance` (0-100 %) conditionnant l'attestation | Conditions de certification modifiables par tout gestionnaire ; à protéger et versionner côté serveur |
@@ -262,5 +295,6 @@
 | 36783 | unlockEbook | ebookpurchase | « Achat enregistré » écrit par l'acheteur avec `price` copié du guide, sans paiement | n'importe qui se débloque gratuitement un guide payant |
 | 36822, 36836 | addWisdomCapsule / deleteWisdomCapsule | wisdomcapsule | Publication/suppression réservée à `isGenuineOwnerSession` (variable JS locale l. 28917) | Un client peut forcer la variable ; il faut un claim admin vérifié par Function |
 | 36891-36897 | saveZoneCampaign | zonecampaign | Bannière géociblée publiée par le propriétaire, journalisée via `logAdminAction` | Garde uniquement sur l'écran (l. 8734), pas dans la fonction ; audit log lui-même écrit côté client |
+| 36982-36997 / 37263-37275 / 29501-29509 / 28337-28344 | addRegionalAdmin / addPayoutSpecialist / createCustomRole / createTechTeamMember | settings:<rôles et accès> | création de comptes admin avec pinHash, pays, domaine, mustChangePassword | gestion des rôles |
 | 37085-37096 | logPrivilegeException | exceptionregistry | rôle déduit de variables JS (isPayoutSpecialist, isModerator, isGenuineOwnerSession, adminScope) ; justification ≥ 30 car. | journal d'audit de passe-droits (2FA, débannissement) doit être inviolable |
 | 37141-37144 | resolveExceptionEntry | exceptionregistry | DG valide/signale une exception | rôle DG côté client |

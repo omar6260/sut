@@ -21,7 +21,8 @@ let ok = true;
 for (const file of ['prefixes.md', 'classification.md']) {
   const rowsList = await tablePrefixes(file).catch(() => null);
   if (!rowsList) { console.error(`${file} : absent`); ok = false; continue; }
-  const found = new Set(rowsList.map((r) => r[0]));
+  // Un préfixe éclaté en groupes (« settings:<clés API> », …) est couvert par ses groupes.
+  const found = new Set(rowsList.flatMap((r) => [r[0], r[0].split(':')[0]]));
   const missing = [...expected].filter((p) => !found.has(p));
   const extra = [...found].filter((p) => !expected.has(p) && !p.startsWith('settings:'));
   console.log(`${file} : ${found.size} préfixes documentés / ${expected.size} extraits` + (missing.length ? ` — MANQUANTS (${missing.length}) : ${missing.join(', ')}` : ' — couverture 100 %'));

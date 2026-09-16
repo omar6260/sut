@@ -1,6 +1,6 @@
 # Écritures croisées — un utilisateur modifie une donnée qui appartient à un autre
 
-170 sites, triés par ligne. Chacun est un motif lecture → modification → réécriture complète (dernier écrit gagnant) ou une création sous le document d'autrui. Solutions : sous-collection (un document par contributeur), `increment()` pour les compteurs, transaction serveur (Cloud Function) pour tout ce qui a une valeur.
+188 sites, triés par ligne. Chacun est un motif lecture → modification → réécriture complète (dernier écrit gagnant) ou une création sous le document d'autrui. Solutions : sous-collection (un document par contributeur), `increment()` pour les compteurs, transaction serveur (Cloud Function) pour tout ce qui a une valeur.
 
 | Ligne | Fonction | Préfixe | Champ modifié | Qui modifie quoi | Solution proposée |
 |---|---|---|---|---|---|
@@ -16,16 +16,20 @@
 | 9245 | generateDuetToOrderSuggestion | post | suggestedReplyText | le navigateur du spectateur (duo) réécrit le post du vendeur avec un texte Gemini | Function serveur (appel Gemini côté serveur, clé non exposée) |
 | 9614 | checkVideoAnalysisResult | videoanalysis: (+ post:) | status, flagged ; post.suspended | admin réécrit l'analyse puis suspend le post de l'auteur (9617) | Function serveur |
 | 9617 | pollVideoAIAnalysis | post | suspended | navigateur admin (résultat IA) | Function serveur |
+| 9845 / 9984 / 34394 | prefillPublishWithCapturedMedia / incrementSoundUsage / addSeriesEpisode | sound: | usageCount | tout utilisateur réécrit le son d'un autre pour compter un usage | increment() (compteur séparé) |
 | 10768 | recordQualifiedView | post | qualifiedViews | tout lecteur réécrit la publication | increment(qualifiedViews) |
 | 11272 | trackAdClickAndDiscover | ad | clicks | tout utilisateur qui clique modifie la campagne de l'annonceur/admin | increment() via Function (ou sous-collection `adevents`) |
 | 11292 | recordAdConversionIfAttributed | ad | conversions | l'acheteur modifie la campagne (fenêtre 1 h, 11284-11285) | increment() via Function côté commande |
 | 11459 | createNotification | notif | doc entier (création) | fromUser crée une notification pour toUser | Function ou sous-collection `users/{toUid}/notifs` en écriture serveur uniquement |
+| 11993 | showCurrentStory | story: | viewedBy | chaque spectateur réécrit la story entière de l'auteur | sous-collection `views/{viewer}` (ou arrayUnion serveur) |
+| 12081 | markStoryQuestionAnswered | storyquestion: | answered | le destinataire modifie le doc créé par l'expéditeur | PARTICIPANTS (règle : toUser peut écrire `answered` seulement) |
 | 12948 | toggleVideoInCollabPlaylist | collabplaylistitem | (suppression du doc) | créateur de la playlist supprime un item ajouté par un autre utilisateur | sous-collection `collabplaylist/{id}/items/{postId}` ; règle delete si `addedBy == uid` ou `parent.creator == uid` |
 | 13263 | recordPostView | post | views, viewedBy[] | tout lecteur réécrit la publication | Function/increment(views) ; viewedBy en sous-collection |
 | 13534 | createFollowRelationship | user: | followers[] | un utilisateur réécrit le doc entier de l'utilisateur suivi | sous-collection `followers/<uid>` + `followerCount` increment() |
 | 13534 | createFollowRelationship / toggleFollow (l. 13598) | user | `followers[]` du suivi | un utilisateur ajoute/retire son nom dans le doc `user:` d'un autre | sous-collection `users/{uid}/followers` + compteur `increment()` via Function |
 | 13535 | createFollowRelationship / toggleFollow (l. 13599) | user | `following[]` du suiveur | propriétaire, mais couplé à l'écriture précédente (deux docs non atomiques) | même Function transactionnelle que ci-dessus |
 | 13587 | toggleFollow | followsource | document entier (création/suppression) | l'abonné crée `followsource:<créateur>__<moi>` dans l'espace du créateur | transaction serveur du follow qui écrit le doc de source ; ou sous-collection `users/{créateur}/followsources/{follower}` |
+| 13596 / 16240 | toggleFollow / toggleBlockUser | sharedfeed: | delete | un partenaire supprime le fil commun | PARTICIPANTS (delete autorisé aux deux membres) |
 | 13598 | toggleFollow | user: | followers[] | l'utilisateur réécrit le doc entier de la cible (follow/unfollow) | sous-collection `followers/<uid>` + increment() |
 | 13701 / 17298 | checkAndSendLiveReminders / checkConferenceReminders | live | reminderSent | n'importe quel navigateur connecté (setInterval 60 s, 7275) réécrit les lives programmés d'autrui | Cloud Scheduler + Function ; supprimer le sondage client |
 | 13840 | toggleDislike | post | dislikes[], likes[] | tout utilisateur réécrit la publication d'un autre | sous-collection reactions/{uid} + increment() |
@@ -54,11 +58,14 @@
 | 16247 | toggleBlockUser | user (hors lot) | followers, following | le bloqueur réécrit user:<bloqué> pour rompre les abonnements | sous-collection followers + Function |
 | 16247 | blocage de profil (fonction englobante, à vérifier) | user: | followers[], following[] | le bloqueur réécrit le doc de l'utilisateur bloqué pour rompre les abonnements | Function de blocage transactionnelle |
 | 16247 | toggleBlockUser | user | `followers[]`, `following[]` de la personne bloquée | le bloqueur retire les abonnements mutuels dans le doc de l'autre | Function `blockUser` (transaction) + `blocked` en sous-collection privée du bloqueur |
+| 16632-16634 | approveShopSubRequest | shopsubscription:, shopsubrequest: | doc entier / status | l'admin crée l'abonnement du vendeur et réécrit sa demande | transaction serveur (Function ADMIN) |
 | 16836-16841 | importInstitutionalCsv (à vérifier nom exact) | enrollment | doc entier + user.stateFunded | admin crée une inscription `approved` au nom d'un autre utilisateur | Function d'import côté serveur |
 | 16956 | redeemActivationCode | activationcode | redeemed, redeemedBy, redeemedAt | un utilisateur réécrit un document créé par l'admin (course-condition : deux usages simultanés) | transaction serveur |
 | 16958 | redeemActivationCode | user: (hors lot) | stateFunded | l'utilisateur s'octroie lui-même l'accès financé après activation | transaction serveur (même Function) |
+| 16989-16991 / 16999 | approveStateFundedRequest / rejectStateFundedRequest | staterequest:, user: | status / stateFunded | l'admin réécrit la demande et le profil de l'élève | Function ADMIN (transaction) |
 | 17030-17038 | approveEduSubRequest | edusubrequest / edusubscription | status ; doc abonnement entier | admin (ou le demandeur lui-même si auto-approbation l.17011) réécrit la demande et crée l'abonnement d'autrui | transaction serveur unique (demande → abonnement → paiement → achat) |
 | 17690 | gatherEnrolledCourseContent | contentembedding | (doc entier, cache manquant) | un élève inscrit écrit l'embedding d'une leçon du formateur | transaction serveur (Function déclenchée à la création de leçon/exercice ; élève en lecture seule) |
+| 17909 | submitGrade | submission: | score, feedback, status, gradedAt, gradeCorrectionHistory | le formateur réécrit la copie de l'élève | Function serveur (grade immuable, historique) ou sous-collection `grades` |
 | 18431 | submitFullExamGrade | fullexamsubmission | status, totalScore, gradedAt | le formateur relit et réécrit la copie déposée par l'élève | Function `gradeSubmission` (transaction serveur) vérifiant que l'appelant est le formateur du cours |
 | 18647 | addCourseFaqItem | coursefaq | tableau FAQ (push/splice) | co-formateur/remplaçant réécrit la FAQ du formateur | sous-collection `faq/{id}` ou règle multi-auteurs sur le cours |
 | 18698 | saveCourseSharedNotes | coursenotes | content, lastEditedBy, lastEditedAt | tout élève approuvé réécrit le doc partagé du cours (dernier écrit gagnant, l.18690 lecture → 18698 réécriture) | transaction serveur avec numéro de version optimiste (ou sous-collection de contributions) ; l'historique coursenotesversion reste en création seule |
@@ -74,6 +81,7 @@
 | 20210 | approveParentLink | parentlink | doc entier (création) | l'élève crée le lien sous la clé du parent | Function `approveParentLink` écrivant `parentLinks/{parent}_{student}` |
 | 20583 | émission de certificat (fonction englobante, à vérifier) | user: | isAlumnus | formateur réécrit le doc de l'élève | Function |
 | 20854 | approveStudentRemoval | enrollment | suppression | admin supprime l'inscription d'un élève à la demande du formateur | Function serveur |
+| 20854-20856 | approveStudentRemoval | studentremoval:, enrollment: | status / delete | l'admin réécrit la demande du formateur et supprime l'inscription de l'élève | Function ADMIN (transaction) |
 | 21578 | checkReliableBuyerBadge | user (hors lot) | reliableBuyer | le vendeur réécrit user:<acheteur> | trigger Function onCreate buyerrating |
 | 21587 / 22095 | badges acheteur fiable / vendeur recommandé | user: | reliableBuyer, recommendedSeller | un autre utilisateur (noteur) réécrit le doc du vendeur/acheteur | Function (calcul serveur des badges) |
 | 21587 | evaluateReliableBuyerBadge | user | `reliableBuyer` de l'acheteur | le vendeur qui note déclenche l'écriture dans le doc de l'acheteur | Function déclenchée sur `ratings` |
@@ -124,13 +132,19 @@
 | 27009 | placeBid | product | auctionCurrentBid, auctionHighestBidder | l'enchérisseur réécrit le produit du vendeur | transaction serveur (contrôle minBid, fin d'enchère) |
 | 27023 | proceedToAuctionCheckout | product | auctionSettled | le gagnant réécrit le produit du vendeur | transaction serveur |
 | 27279 | submitOrder | product | stock (décrément) | l'acheteur réécrit le produit du vendeur | transaction serveur / increment(-qty) avec contrôle stock>=qty |
+| 27572-27573 | bookServiceSlot | product: (via servicebooking) | serviceSlots | l'acheteur retire un créneau du produit du vendeur puis crée la réservation | transaction serveur (retrait du créneau + création booking atomiques) |
 | 27573 | bookServiceSlot | product | serviceSlots[] | le client réécrit le produit du prestataire | transaction serveur (sous-collection slots/{iso}) |
+| 27764 | acceptSharedFeedInvite | sharedfeed: | status, acceptedAt | l'invité modifie le doc créé par l'invitant | PARTICIPANTS (doc à deux membres) |
+| 27797 | openSharedFeed | sharedfeed: | todaysPostIds, lastGeneratedDate | l'un ou l'autre partenaire régénère le fil (dernier écrit gagnant) | transaction serveur ou génération par Function planifiée |
 | 27946 | toggleMessageReaction | dm | reactions{} d'un message | un participant réécrit le fil entier pour modifier les réactions d'un message de l'autre (l.27936 lecture → 27946 réécriture) | sous-collection messages/{id}/reactions/{uid} ou arrayUnion/arrayRemove sur le doc message |
 | 28099 | moveDevTask | devtask | status | l'admin/équipe technique modifie le signalement de bug créé par un utilisateur (l.28096 lecture → 28099 réécriture) | transaction serveur (Function admin) ne modifiant que status |
 | 28482 / 28492 / 28603 | sendTicketReply / assignTicketTo / resolveTicket | ticket: | response, respondedBy, assignedTo, status, resolvedAt | admin réécrit le ticket support de l'utilisateur | sous-collection `replies` + champs admin écrits par Function |
 | 28688 | sendGroupMessage | groupmsg | tableau messages entier | chaque membre relit tout le tableau et le réécrit (écrasement concurrent) | sous-collection `groups/{id}/messages` (un doc par message) |
 | 28710 | leaveGroupChat | group | members | un membre réécrit `members[]` du groupe créé par un autre | `arrayRemove` / sous-collection `groups/{id}/members` |
 | 28724 | sendThreadMessage (et sendThreadPhoto l.28741, vocal l.28766, sendPostToFriend l.15230) | dm | tableau de messages entier | chaque participant lit tout le fil et le réécrit avec son message ajouté (l.28722 lecture → 28724 réécriture) ; deux envois simultanés s'écrasent | sous-collection dm/{thread}/messages/{msgId} (un doc par message, création seule) |
+| 28823-28828 | enforceFirstLoginPasswordChange | settings:<rôles et accès> | pinHash, mustChangePassword | un modérateur/DG réécrit toute la liste des rôles | Auth (changement de mot de passe natif) |
+| 28936-28940 | logAdminAction | settings:lastAuditLogHash | hash de chaîne | chaque admin lit→réécrit le dernier hash (course) | transaction serveur (Function d'audit) |
+| 29123 / 37059 / 37216 / 37401 | (gestion des rôles) | settings:<rôles et accès> | tableaux moderators/regionaladmins | plusieurs admins lisent→modifient→réécrivent la même liste | custom claims Auth via Function super-admin (un doc par membre) |
 | 29645 | markAlertSeen | importantalert | seen | admin réécrit un doc créé depuis la session de l'acheteur (29596) | création par Function au moment de la commande ; mise à jour `seen` par Function admin |
 | 30628 | adminToggleSensitive | post | sensitive | admin réécrit le post d'un utilisateur | Function ADMIN (claim vérifié) |
 | 30637 | adminToggleSuspendPost | post | suspended | admin | Function ADMIN |
@@ -145,6 +159,7 @@
 | 32168 / 32173 / 32162 | checkLiveReportThreshold | live | chatCooldownUntil, autoWarnedAt, suppression | le navigateur du signaleur applique une sanction sur le live d'un autre | Function déclenchée sur création de signalement (transaction serveur) |
 | 32393 | approveFlaggedProduct | product | mediaFlagged | admin | Function ADMIN |
 | 32456 | approveBlockedComment | post: (hors lot, via addComment) | comments | l'admin ajoute un commentaire (image) sur la publication d'un autre utilisateur | sous-collection `comments` |
+| 32471 / 32479 | approveMediaFlaggedStory / removeMediaFlaggedStory | story: | mediaFlagged / delete | l'admin modifie ou supprime la story d'un utilisateur | Function ADMIN |
 | 32488 | dismiss flag | post | mediaFlagged | admin | Function ADMIN |
 | 32516 | removePostAudio (modération) | user | `audioRemovedCount` du créateur | admin incrémente un compteur dans le doc d'un autre | `increment()` via Function admin |
 | 32563 | duplicate review | post | duplicateReviewed | admin | Function ADMIN |
@@ -165,12 +180,15 @@
 | 33817 | resolveFundDispute | creatorfundpayout | disputeStatus, disputeAdminNote | l'admin modifie le doc de reversement (contesté par le créateur) | transaction serveur (Function admin) |
 | 33858 | submitPayoutDispute | creatorfundpayout | disputeStatus, disputeReason, disputeCreatedAt | le créateur bénéficiaire modifie le doc de reversement créé par l'admin (l.33854 lecture → 33858 réécriture) | sous-collection creatorfundpayout/{id}/disputes ou Function serveur qui ne touche que les champs de contestation |
 | 34114-34117 | resolveReport | report | status | admin ou IA (l.32264 via maybeAutoTriageReport) réécrit le signalement du signaleur | transaction serveur (Function de modération) |
+| 34334-34339 | deletePaidSeries | seriessubscriber:, seriespurchase:, seriesrating: | documents entiers | le créateur de la série supprime les docs d'autres utilisateurs | Function de suppression en cascade (archivage des achats, pas de delete) |
 | 34516-34518 | checkNewlyReleasedEpisodes | episodereleasenotified | drapeau global | n'importe quel visiteur du feed écrit un drapeau partagé (course entre clients) | Function planifiée (cron) côté serveur |
 | 34867 | toggleCommunityGroupMembership | communitygroup | members[] | tout utilisateur rejoint/quitte en réécrivant le doc du créateur | sous-collection `members/{uid}` + `memberCount` via increment() |
 | 35213 | adjustUserCoinBalance | coinbalance | valeur entière | admin lit→calcule→réécrit coinbalance:<autre utilisateur> | transaction serveur + increment() + journal coinadjustment |
 | 35455 | markOrderPaidOut | order | payoutStatus, paidOutAt, paidOutBy | admin/spécialiste reversement réécrit la commande | Function admin avec journal de reversement |
 | 35521 | markCoinWithdrawalPaid | coinwithdrawal | status, paidAt, paidBy | admin réécrit la demande de retrait d'un utilisateur | transaction serveur (Function admin `markWithdrawalPaid`, claim vérifié) |
+| 35640 | toggleShadowBan | settings:shadowbannedusers | tableau entier | admin réécrit la liste (écrasement concurrent) | sous-collection `sanctions/{username}` |
 | 35857-35858 | checkScheduledSystemNotifications | scheduledsystemnotif | sent=true | tout client ouvrant le fil réécrit le doc admin puis notifie tous les utilisateurs | Function planifiée (Cloud Scheduler) + transaction pour éviter les doubles envois |
+| 36176 | toggleFeaturedSound | sound: | featuredOnHome | l'admin modifie le son d'un créateur | Function ADMIN (ou collection `featured` séparée) |
 | 36558 | closeCourseChallenge | challenge | status | formateur clôt un défi sans vérifier createdBy/courseId | règle owner==createdBy ou Function |
 | 36626 | sendWorkGroupChatMessage | workgroupchat | tableau entier de messages | chaque membre du groupe relit puis réécrit tout le fil ; deux membres simultanés s'écrasent | sous-collection `workgroups/{id}/messages` (un doc par message, règle `from == uid` et membre du groupe) |
 | 36638 | saveCertificateConditions | course | certMinAverage, certMinAttendance | co-formateur/remplaçant réécrit le doc du formateur | idem ; ces seuils étant liés à la certification, passer par Function |
