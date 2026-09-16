@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "suktum-dev",
+    "dev": "suktum-dev"
+  }
+}
