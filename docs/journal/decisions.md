@@ -53,3 +53,18 @@ Alternative écartée : `click({ force: true })` — clique aux coordonnées, do
 - **D7 — Visibilité de la wishlist** : lecture par autrui si `wishlistVisible` (l. 16131) et balayage vendeur « retour en stock » (l. 22422). Garder les deux ?
 - **D8 — Contenu de cours avant inscription** : vidéos, podcasts, FAQ, concours visibles en catalogue ou seulement après inscription ? (fixe la règle unique « cours », §1a).
 - **D9 — Ordre 04/07** : déport provisoire des médias vers Storage dès la phase 04, ou aucun test avec médias avant la phase 07 ?
+
+## 2026-09-16 — Phase 03
+
+**Découpage par plages de lignes en 20 fichiers JS + `styles.css` + `index.template.html`, reconstitution IDENTIQUE octet par octet (`scripts/verify-split.mjs`).**
+Raison : preuve mécanique qu'aucune logique n'a changé ; chaque morceau passe `node --check`, aucune double déclaration `let`/`const`/`class` de premier niveau, 30 tests e2e verts sur le build multi-fichiers.
+Alternative écartée : découpage par marqueur de section (276 fichiers) — trop fin pour la phase 04, qui travaille par domaine.
+
+**Test de risque C6 (COOP/COEP) — résultat, rien corrigé** (`node scripts/serve.mjs --coop`, Chromium, vrai réseau) :
+| | sans COOP/COEP | avec `COOP: same-origin` + `COEP: require-corp` |
+|---|---|---|
+| `crossOriginIsolated` / `SharedArrayBuffer` | non / non → **FFmpeg.wasm 0.11.6 multi-thread inutilisable** (filigrane, filtres) | oui / oui |
+| Script FFmpeg (unpkg) | chargé | chargé |
+| Google Identity (`accounts.google.com/gsi/client`) | chargé (`GOOGLE_CLIENT_ID` vide de toute façon) | chargé (popup non testée ; COOP `same-origin` est connu pour casser la fenêtre de connexion) |
+| Jitsi (`meet.jit.si/external_api.js`) | chargé | **BLOQUÉ** — `ERR_BLOCKED_BY_RESPONSE … CoEP` : le serveur public n'envoie pas de `Cross-Origin-Resource-Policy` → lives et Penc impossibles |
+Conclusion pour la phase 07 : les deux configurations sont incompatibles avec le prototype tel quel. Options : (a) cœur FFmpeg **mono-thread** (`@ffmpeg/core-st`, sans SAB ni COOP/COEP, Jitsi conservé) ; (b) filigrane/filtres côté Cloudflare Stream et suppression de FFmpeg ; (c) COOP/COEP + Jitsi auto-hébergé/JaaS avec en-têtes CORP. Recommandation : (b) à terme, (a) en transition.
