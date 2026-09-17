@@ -2089,16 +2089,8 @@ function renderPollCardHtml(p){
     '<p style="margin:8px 0 0; font-size:11px; color:rgba(245,239,227,0.4);">'+totalVotes+' vote(s)</p></div>';
 }
 async function voteOnPoll(pollId, optionIndex){
-  const p = await safeGet('poll:' + pollId, true);
-  if(!p) return;
-  if(p.expiresAt && new Date(p.expiresAt) < new Date()){ showToast('Ce sondage est clos'); return; }
-  const alreadyVoted = Object.values(p.votes || {}).some(arr => arr.includes(currentUser));
-  if(alreadyVoted) return;
-  if(!p.votes) p.votes = {};
-  if(!p.votes[optionIndex]) p.votes[optionIndex] = [];
-  p.votes[optionIndex].push(currentUser);
-  await saveWithRetry('poll:' + pollId, p, true);
-  await renderPollsList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function renderCommunityEventsList(){
   const el = document.getElementById('community-events-list');
@@ -2133,16 +2125,8 @@ async function openEventDetail(eventId){
     ).join(''));
 }
 async function toggleEventParticipation(eventId){
-  const e = await safeGet('communityevent:' + eventId, true);
-  if(!e) return;
-  if(e.participants.includes(currentUser)){
-    e.participants = e.participants.filter(p => p !== currentUser);
-  } else {
-    e.participants.push(currentUser);
-    if(e.organizer !== currentUser) await createNotification(e.organizer, 'event_participation', currentUser, eventId, e.title);
-  }
-  await saveWithRetry('communityevent:' + eventId, e, true);
-  await openEventDetail(eventId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function checkOfficialStatementBanner(){
   const el = document.getElementById('official-statement-banner');
@@ -4090,24 +4074,8 @@ async function renderPencBrowse(){
 let currentPencId = null;
 let pencRoomRefreshInterval = null;
 async function openPencRoom(pencId){
-  if(!requireAccount('Créez un compte pour rejoindre un Penc')) return;
-  const p = await safeGet('penc:' + pencId, true);
-  if(!p || !p.active){ showToast('Ce Penc est terminé'); return; }
-  currentPencId = pencId;
-  if(!p.everJoined) p.everJoined = [];
-  let needsSave = false;
-  if(!p.participants.includes(currentUser)){ p.participants.push(currentUser); needsSave = true; }
-  if(!p.everJoined.includes(currentUser)){ p.everJoined.push(currentUser); needsSave = true; }
-  if(needsSave) await saveWithRetry('penc:' + pencId, p, true);
-  document.getElementById('penc-room-title').textContent = '🌳 ' + p.title;
-  document.getElementById('penc-room-iframe').src = 'https://meet.jit.si/suktum-penc-' + pencId + '#config.startAudioOnly=true&config.startWithVideoMuted=true&config.prejoinPageEnabled=false';
-  document.getElementById('penc-end-btn').style.display = p.host === currentUser ? 'block' : 'none';
-  document.getElementById('penc-report-btn').style.display = p.host !== currentUser ? 'block' : 'none';
-  document.getElementById('penc-cohost-invite').style.display = p.host === currentUser ? 'block' : 'none';
-  go('penc-room');
-  await renderPencRoomParticipants();
-  if(pencRoomRefreshInterval) clearInterval(pencRoomRefreshInterval);
-  pencRoomRefreshInterval = setInterval(renderPencRoomParticipants, 4000);
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 /* ---------- SONDAGE RAPIDE SUR UNE PUBLICATION ---------- */
 function renderPostPollHtml(p){
@@ -4129,14 +4097,8 @@ function renderPostPollHtml(p){
     '<p style="margin:8px 0 0; font-size:11px; color:rgba(245,239,227,0.4);">'+total+' vote(s)</p></div>';
 }
 async function voteOnPostPoll(postId, optionIndex){
-  if(!requireAccount('Créez un compte pour voter')) return;
-  const p = await safeGet('post:' + postId, true);
-  if(!p || !p.poll) return;
-  if(!p.poll.votes) p.poll.votes = {};
-  if(p.poll.votes[currentUser] !== undefined){ showToast('Vous avez déjà voté'); return; }
-  p.poll.votes[currentUser] = optionIndex;
-  await saveWithRetry('post:' + postId, p, true);
-  await openSinglePostView(postId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function renderPencRoomParticipants(){
   if(!currentPencId) return;
@@ -4170,19 +4132,8 @@ async function renderPencRoomParticipants(){
   }
 }
 async function sendPencChatMessage(){
-  if(!currentPencId || !currentUser) return;
-  const input = document.getElementById('penc-chat-input');
-  const text = input.value.trim();
-  if(!text) return;
-  const forbiddenWords = await getForbiddenWords();
-  if(containsForbiddenWord(text, forbiddenWords)){ showToast('Ce message contient un mot non autorisé'); return; }
-  const p = await safeGet('penc:' + currentPencId, true);
-  if(!p) return;
-  if(!p.chatMessages) p.chatMessages = [];
-  p.chatMessages.push({ user: currentUser, text, ts: new Date().toISOString() });
-  await saveWithRetry('penc:' + currentPencId, p, true);
-  input.value = '';
-  await renderPencRoomParticipants();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 /* ---------- RECHERCHE DANS UNE CONVERSATION ---------- */
 function searchInThread(){
@@ -4209,17 +4160,8 @@ function clearThreadSearch(){
   searchInThread();
 }
 async function kickFromPenc(username){
-  if(!currentPencId) return;
-  const p = await safeGet('penc:' + currentPencId, true);
-  if(!p || p.host !== currentUser) return;
-  if(!confirm('Exclure @' + username + ' de ce Penc ?')) return;
-  p.participants = p.participants.filter(u => u !== username);
-  if(p.coHosts) p.coHosts = p.coHosts.filter(u => u !== username);
-  if(!p.kicked) p.kicked = [];
-  if(!p.kicked.includes(username)) p.kicked.push(username);
-  await saveWithRetry('penc:' + currentPencId, p, true);
-  showToast('@' + username + ' exclu(e) du Penc ✓');
-  await renderPencRoomParticipants();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function reportPencRoom(){
   if(!currentPencId || !currentUser) return;
@@ -4235,37 +4177,12 @@ async function reportPencRoom(){
   showToast('Signalement envoyé ✓ — merci, l’équipe va l’examiner');
 }
 async function invitePencCoHost(){
-  if(!currentPencId) return;
-  const p = await safeGet('penc:' + currentPencId, true);
-  if(!p || p.host !== currentUser) return;
-  const username = document.getElementById('penc-cohost-input').value.trim();
-  if(!username){ showToast('Renseignez un nom d’utilisateur'); return; }
-  if(username === currentUser){ showToast('Vous êtes déjà l’animateur'); return; }
-  const exists = await safeGet('user:' + username, true);
-  if(!exists){ showToast('Ce compte n’existe pas'); return; }
-  if(!p.coHosts) p.coHosts = [];
-  if(p.coHosts.includes(username)){ showToast('Déjà co-animateur(trice)'); return; }
-  p.coHosts.push(username);
-  if(!p.participants.includes(username)) p.participants.push(username);
-  await saveWithRetry('penc:' + currentPencId, p, true);
-  document.getElementById('penc-cohost-input').value = '';
-  showToast('@' + username + ' invité(e) comme co-animateur(trice) ✓');
-  await createNotification(username, 'penc_cohost_invite', currentUser, null, p.title);
-  await renderPencRoomParticipants();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function leavePencRoom(){
-  if(pencRoomRefreshInterval){ clearInterval(pencRoomRefreshInterval); pencRoomRefreshInterval = null; }
-  if(currentPencId && currentUser){
-    const p = await safeGet('penc:' + currentPencId, true);
-    if(p && p.active){
-      p.participants = p.participants.filter(u => u !== currentUser);
-      await saveWithRetry('penc:' + currentPencId, p, true);
-    }
-  }
-  const iframe = document.getElementById('penc-room-iframe');
-  if(iframe) iframe.removeAttribute('src');
-  currentPencId = null;
-  go('penc-browse');
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function endPenc(){
   if(!currentPencId) return;
@@ -5732,15 +5649,8 @@ async function renderCommunityGroupWall(){
   await renderCommunityGroupPosts();
 }
 async function toggleCommunityGroupMembership(){
-  const g = await safeGet('communitygroup:' + currentCommunityGroupId, true);
-  if(!g) return;
-  const members = g.members || [];
-  const idx = members.indexOf(currentUser);
-  if(idx !== -1) members.splice(idx, 1);
-  else members.push(currentUser);
-  g.members = members;
-  await saveWithRetry('communitygroup:' + currentCommunityGroupId, g, true);
-  await renderCommunityGroupWall();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function publishCommunityGroupPost(){
   const g = await safeGet('communitygroup:' + currentCommunityGroupId, true);

@@ -41,15 +41,8 @@ async function fetchPosts(includeSuspended){
   return posts;
 }
 async function releaseScheduledPosts(){
-  const keys = await safeList('post:', true);
-  for(const k of keys){
-    const p = await safeGet(k, true);
-    if(p && p.status === 'scheduled' && new Date(p.scheduledFor) <= new Date()){
-      p.status = 'published';
-      await saveWithRetry('post:' + p.id, p, true);
-      await notifyFollowersOfNewPost(p);
-    }
-  }
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function checkMemories(){
   if(!currentUser) return;

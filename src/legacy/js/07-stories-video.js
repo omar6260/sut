@@ -128,11 +128,7 @@ async function openStoryViewer(username){
 async function showCurrentStory(){
   const s = currentStoryQueue[currentStoryIndex];
   if(!s){ closeStoryViewer(); return; }
-  if(!s.viewedBy) s.viewedBy = [];
-  if(!s.viewedBy.includes(currentUser)){
-    s.viewedBy.push(currentUser);
-    await saveWithRetry('story:' + s.id, s, true);
-  }
+  /* phase 06 : viewedBy écrit par le serveur (markStoryViewed) — voir src/platform/overrides/30-social.js */
   await recordStoryWatchStart(s.id);
   const mediaEl = document.getElementById('story-viewer-media');
   mediaEl.innerHTML = s.type === 'video'
@@ -216,12 +212,8 @@ async function renderMyStoryQuestions(){
   ).join('');
 }
 async function markStoryQuestionAnswered(questionId){
-  const q = await safeGet('storyquestion:' + questionId, true);
-  if(!q || q.toUser !== currentUser) return;
-  q.answered = true;
-  await saveWithRetry('storyquestion:' + questionId, q, true);
-  showToast('Marquée comme répondue ✓');
-  await renderMyStoryQuestions();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function pinStoryToHighlights(){
   const s = currentStoryQueue[currentStoryIndex];

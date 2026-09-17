@@ -842,38 +842,8 @@ async function renderMillionFollowersAdminList(){
   ).join('');
 }
 async function toggleFollow(username, sourcePostId){
-  if(!requireAccount('Créez un compte pour suivre quelqu’un')) return;
-  const target = await safeGet('user:' + username, true);
-  const me = await safeGet('user:' + currentUser, true);
-  if(!target || !me) return;
-  if(!target.followers) target.followers = [];
-  if(!me.following) me.following = [];
-  const idx = target.followers.indexOf(currentUser);
-  if(idx === -1){
-    target.followers.push(currentUser);
-    me.following.push(username);
-    triggerHapticFeedback('light');
-    showToast('Abonné(e) à @' + username + ' ✓');
-    if(sourcePostId){
-      await saveWithRetry('followsource:' + username + '__' + currentUser, { sourcePostId, followedAt: new Date().toISOString() }, true);
-    }
-  } else {
-    target.followers.splice(idx, 1);
-    me.following.splice(me.following.indexOf(username), 1);
-    showToast('Désabonné(e) de @' + username);
-    await window.storage.delete('postnotifypref:' + currentUser + '__' + username, false).catch(() => {});
-    await window.storage.delete('followsource:' + username + '__' + currentUser, true).catch(() => {});
-    const sharedFeedKey = threadKeyFor(currentUser, username);
-    await window.storage.delete('sharedfeed:' + sharedFeedKey, true).catch(() => {});
-  }
-  await saveWithRetry('user:' + username, target, true);
-  await saveWithRetry('user:' + currentUser, me, true);
-  if(idx === -1){
-    await createNotification(username, 'follow', currentUser);
-    await checkMillionFollowersMilestone(username);
-  }
-  await renderFeed();
-  await renderPostNotificationPrefButton(username);
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function renderMuteButton(username){
   const btn = document.getElementById('uprofile-mute-btn');
@@ -1026,13 +996,8 @@ async function toggleLiveNotificationPreference(){
   await renderLiveNotificationPrefButton(username);
 }
 async function notifyFollowersOfNewLive(l){
-  const author = await safeGet('user:' + l.username, true);
-  if(!author || !author.followers || author.followers.length === 0) return;
-  for(const followerUsername of author.followers){
-    const pref = await safeGet('livenotifypref:' + followerUsername + '__' + l.username, false).catch(() => null);
-    const notifyAll = !pref || pref.notifyAll !== false;
-    if(notifyAll) await createNotification(followerUsername, 'live_start', l.username, l.id, null);
-  }
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function togglePostNotificationPreference(){
   if(!currentUserDetailTarget && !currentViewedProfileUsername) return;
@@ -1096,32 +1061,12 @@ async function saveMutePreference(soundOn){
   await saveWithRetry('user:' + currentUser, me, true);
 }
 async function toggleDislike(postId){
-  const p = await safeGet('post:' + postId, true);
-  if(!p) return;
-  if(!p.dislikes) p.dislikes = [];
-  if(!p.likes) p.likes = [];
-  const idx = p.dislikes.indexOf(currentUser);
-  if(idx === -1){
-    p.dislikes.push(currentUser);
-    const likeIdx = p.likes.indexOf(currentUser);
-    if(likeIdx !== -1) p.likes.splice(likeIdx, 1);
-  } else {
-    p.dislikes.splice(idx, 1);
-  }
-  await saveWithRetry('post:' + postId, p, true);
-  await renderFeed();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function toggleWatchLater(postId){
-  if(!requireAccount('Créez un compte pour ajouter à votre liste')) return;
-  const p = await safeGet('post:' + postId, true);
-  if(!p) return;
-  if(!p.watchLaterBy) p.watchLaterBy = [];
-  const idx = p.watchLaterBy.indexOf(currentUser);
-  if(idx === -1){ p.watchLaterBy.push(currentUser); showToast('Ajouté à « À regarder plus tard » ⏰'); }
-  else { p.watchLaterBy.splice(idx, 1); showToast('Retiré de votre liste'); }
-  await saveWithRetry('post:' + postId, p, true);
-  if(document.getElementById('screen-feed').classList.contains('active')) await renderFeed();
-  if(document.getElementById('screen-watch-later').classList.contains('active')) await renderWatchLaterList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function renderWatchLaterList(){
   const el = document.getElementById('watch-later-list');
@@ -1140,16 +1085,8 @@ async function renderWatchLaterList(){
   ).join('');
 }
 async function toggleFavorite(postId){
-  const p = await safeGet('post:' + postId, true);
-  if(!p) return;
-  if(!p.favoritedBy) p.favoritedBy = [];
-  const idx = p.favoritedBy.indexOf(currentUser);
-  if(idx === -1){ p.favoritedBy.push(currentUser); showToast('Ajouté à vos favoris 🔖'); }
-  else { p.favoritedBy.splice(idx, 1); showToast('Retiré de vos favoris'); }
-  await saveWithRetry('post:' + postId, p, true);
-  if(document.getElementById('screen-feed').classList.contains('active')) await renderFeed();
-  if(document.getElementById('screen-favorites').classList.contains('active')) await renderFavorites();
-  if(document.getElementById('screen-profile').classList.contains('active') && profileActiveTab === 'favorites') await renderProfileGrid();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function renderFavorites(){
   const grid = document.getElementById('favorites-grid');
@@ -1529,22 +1466,8 @@ async function toggleReactionPicker(postId){
   btn.appendChild(picker);
 }
 async function selectReaction(postId, emoji){
-  document.querySelectorAll('[id^="reaction-picker-"]').forEach(el => el.remove());
-  const p = await safeGet('post:' + postId, true);
-  if(!p) return;
-  if(!p.reactions) p.reactions = {};
-  QUICK_REACTION_EMOJIS.forEach(e => {
-    if(!p.reactions[e]) p.reactions[e] = [];
-    const idx = p.reactions[e].indexOf(currentUser);
-    if(idx !== -1) p.reactions[e].splice(idx, 1);
-  });
-  const alreadyHadThis = (p.reactions[emoji] || []).includes(currentUser);
-  if(!alreadyHadThis){
-    p.reactions[emoji].push(currentUser);
-    await createNotification(p.userId, 'reaction', currentUser, postId, emoji);
-  }
-  await saveWithRetry('post:' + postId, p, true);
-  await renderFeed();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 function triggerHapticFeedback(intensity){
   if(!navigator.vibrate) return;
@@ -1713,50 +1636,20 @@ async function renderFeatureVotesList(){
   }).join('');
 }
 async function nominateCreatorOfMonth(){
-  const input = document.getElementById('new-creator-nomination-input');
-  const username = input.value.trim().replace(/^@/, '');
-  if(!username){ showToast('Écrivez un nom d’utilisateur'); return; }
-  const nominee = await safeGet('user:' + username, true);
-  if(!nominee){ showToast('Ce compte n’existe pas'); return; }
-  const monthKey = new Date().toISOString().slice(0,7);
-  const id = monthKey + '__' + username;
-  const existing = await safeGet('creatorvote:' + id, true);
-  if(existing){ showToast('Déjà nominé(e) ce mois-ci — votez pour cette personne ci-dessous'); input.value = ''; await renderCreatorVoteList(); return; }
-  await saveWithRetry('creatorvote:' + id, { username, monthKey, votes: [currentUser], createdAt: new Date().toISOString() }, true);
-  input.value = '';
-  showToast('Nomination ajoutée ✓');
-  await renderCreatorVoteList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function voteForCreatorOfMonth(voteId){
-  const v = await safeGet('creatorvote:' + voteId, true);
-  if(!v) return;
-  if(!Array.isArray(v.votes)) v.votes = [];
-  const idx = v.votes.indexOf(currentUser);
-  if(idx === -1) v.votes.push(currentUser);
-  else v.votes.splice(idx, 1);
-  await saveWithRetry('creatorvote:' + voteId, v, true);
-  await renderCreatorVoteList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function nominateSoundForWeeklyTrend(soundId){
-  const sound = await safeGet('sound:' + soundId, true);
-  if(!sound) return;
-  const weekKey = getISOWeekKey(new Date());
-  const id = weekKey + '__' + soundId;
-  const existing = await safeGet('trendvote:' + id, true);
-  if(existing){ showToast('Déjà nominé cette semaine — votez ci-dessous'); await renderWeeklyTrendElection(); return; }
-  await saveWithRetry('trendvote:' + id, { soundId, soundName: sound.name, weekKey, votes: [currentUser], createdAt: new Date().toISOString() }, true);
-  showToast('Nomination ajoutée ✓');
-  await renderWeeklyTrendElection();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function voteForWeeklyTrend(voteId){
-  const v = await safeGet('trendvote:' + voteId, true);
-  if(!v) return;
-  if(!Array.isArray(v.votes)) v.votes = [];
-  const idx = v.votes.indexOf(currentUser);
-  if(idx === -1) v.votes.push(currentUser);
-  else v.votes.splice(idx, 1);
-  await saveWithRetry('trendvote:' + voteId, v, true);
-  await renderWeeklyTrendElection();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function renderWeeklyTrendElection(){
   const el = document.getElementById('weekly-trend-election-section');
@@ -1802,14 +1695,8 @@ async function proposePencTopic(){
   await renderPencTopicVotesList();
 }
 async function voteForPencTopic(topicId){
-  const t = await safeGet('penctopicvote:' + topicId, true);
-  if(!t) return;
-  if(!Array.isArray(t.votes)) t.votes = [];
-  const idx = t.votes.indexOf(currentUser);
-  if(idx === -1) t.votes.push(currentUser);
-  else t.votes.splice(idx, 1);
-  await saveWithRetry('penctopicvote:' + topicId, t, true);
-  await renderPencTopicVotesList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function renderPencTopicVotesList(){
   const el = document.getElementById('penc-topic-votes-list');
@@ -1826,14 +1713,8 @@ async function renderPencTopicVotesList(){
   }).join('');
 }
 async function voteForFeature(featureId){
-  const f = await safeGet('featurevote:' + featureId, true);
-  if(!f) return;
-  if(!Array.isArray(f.votes)) f.votes = [];
-  const idx = f.votes.indexOf(currentUser);
-  if(idx === -1) f.votes.push(currentUser);
-  else f.votes.splice(idx, 1);
-  await saveWithRetry('featurevote:' + featureId, f, true);
-  await renderFeatureVotesList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 /* ---------- PANIER MULTI-PRODUITS ---------- */
 /* ---------- ASSEMBLER PLUSIEURS CLIPS EN UNE SEULE VIDÉO ---------- */
@@ -1952,43 +1833,12 @@ async function submitCartCheckout(){
   return;
 }
 async function toggleCommentLike(index){
-  if(!requireAccount('Créez un compte pour aimer un commentaire')) return;
-  const p = await safeGet('post:' + currentCommentsPostId, true);
-  if(!p || !p.comments[index]) return;
-  const c = p.comments[index];
-  if(!c.likes) c.likes = [];
-  if(!c.dislikes) c.dislikes = [];
-  const idx = c.likes.indexOf(currentUser);
-  let nowLiked = false;
-  if(idx === -1){
-    c.likes.push(currentUser);
-    const dIdx = c.dislikes.indexOf(currentUser);
-    if(dIdx !== -1) c.dislikes.splice(dIdx, 1);
-    nowLiked = true;
-  } else {
-    c.likes.splice(idx, 1);
-  }
-  await saveWithRetry('post:' + currentCommentsPostId, p, true);
-  if(nowLiked && c.user !== currentUser) await createNotification(c.user, 'commentlike', currentUser, currentCommentsPostId);
-  await renderCommentsScreen();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function toggleCommentDislike(index){
-  if(!requireAccount('Créez un compte pour réagir à un commentaire')) return;
-  const p = await safeGet('post:' + currentCommentsPostId, true);
-  if(!p || !p.comments[index]) return;
-  const c = p.comments[index];
-  if(!c.likes) c.likes = [];
-  if(!c.dislikes) c.dislikes = [];
-  const idx = c.dislikes.indexOf(currentUser);
-  if(idx === -1){
-    c.dislikes.push(currentUser);
-    const lIdx = c.likes.indexOf(currentUser);
-    if(lIdx !== -1) c.likes.splice(lIdx, 1);
-  } else {
-    c.dislikes.splice(idx, 1);
-  }
-  await saveWithRetry('post:' + currentCommentsPostId, p, true);
-  await renderCommentsScreen();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function openCommentKebabMenu(index){
   const p = await safeGet('post:' + currentCommentsPostId, true);
@@ -2011,11 +1861,8 @@ async function openCommentKebabMenu(index){
   openGenericKebabMenu(items);
 }
 async function togglePinComment(index){
-  const p = await safeGet('post:' + currentCommentsPostId, true);
-  if(!p || p.userId !== currentUser) return;
-  p.pinnedCommentIndex = (p.pinnedCommentIndex === index) ? null : index;
-  await saveWithRetry('post:' + currentCommentsPostId, p, true);
-  await renderCommentsScreen();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function openPendingCommentsReview(){
   if(!currentCommentSettingsPostId) return;
@@ -2050,45 +1897,16 @@ async function renderPendingCommentsReview(){
   }).join('');
 }
 async function approvePendingComment(index){
-  const p = await safeGet('post:' + currentCommentSettingsPostId, true);
-  if(!p || p.userId !== currentUser || !p.comments[index] || p.comments[index].status !== 'pending') return;
-  p.comments[index].status = 'approved';
-  await saveWithRetry('post:' + currentCommentSettingsPostId, p, true);
-  const c = p.comments[index];
-  if(c.replyToIndex !== undefined && c.replyToIndex !== null && p.comments[c.replyToIndex] && p.comments[c.replyToIndex].user !== c.user){
-    await createNotification(p.comments[c.replyToIndex].user, 'commentreply', c.user, currentCommentSettingsPostId, c.text.slice(0,60));
-  } else {
-    await createNotification(p.userId, 'comment', c.user, currentCommentSettingsPostId, c.text.slice(0,60));
-  }
-  await notifyMentions(c.text, c.user, currentCommentSettingsPostId);
-  showToast('Commentaire approuvé ✓');
-  await renderPendingCommentsReview();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function rejectPendingComment(index){
-  const p = await safeGet('post:' + currentCommentSettingsPostId, true);
-  if(!p || p.userId !== currentUser || !p.comments[index] || p.comments[index].status !== 'pending') return;
-  if(!confirm('Supprimer définitivement ce commentaire ?')) return;
-  p.comments.splice(index, 1);
-  if(p.pinnedCommentIndex !== null && p.pinnedCommentIndex !== undefined){
-    if(p.pinnedCommentIndex === index) p.pinnedCommentIndex = null;
-    else if(p.pinnedCommentIndex > index) p.pinnedCommentIndex -= 1;
-  }
-  await saveWithRetry('post:' + currentCommentSettingsPostId, p, true);
-  showToast('Commentaire supprimé ✓');
-  await renderPendingCommentsReview();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function deleteOwnComment(index){
-  const p = await safeGet('post:' + currentCommentsPostId, true);
-  if(!p || !p.comments[index] || p.comments[index].user !== currentUser) return;
-  if(!confirm('Supprimer définitivement ce commentaire ?')) return;
-  p.comments.splice(index, 1);
-  if(p.pinnedCommentIndex !== null && p.pinnedCommentIndex !== undefined){
-    if(p.pinnedCommentIndex === index) p.pinnedCommentIndex = null;
-    else if(p.pinnedCommentIndex > index) p.pinnedCommentIndex -= 1;
-  }
-  await saveWithRetry('post:' + currentCommentsPostId, p, true);
-  showToast('Commentaire supprimé ✓');
-  await renderCommentsScreen();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function startEditComment(index){
   const p = await safeGet('post:' + currentCommentsPostId, true);
@@ -2101,17 +1919,8 @@ async function startEditComment(index){
     '<button class="btn btn-outline btn-sm" onclick="renderCommentsScreen()">Annuler</button>';
 }
 async function saveEditComment(index){
-  const input = document.getElementById('comment-edit-input-' + index);
-  if(!input) return;
-  const newText = input.value.trim();
-  if(!newText){ showToast('Le commentaire ne peut pas être vide'); return; }
-  const p = await safeGet('post:' + currentCommentsPostId, true);
-  if(!p || !p.comments[index] || p.comments[index].user !== currentUser) return;
-  p.comments[index].text = newText;
-  p.comments[index].edited = true;
-  await saveWithRetry('post:' + currentCommentsPostId, p, true);
-  showToast('Commentaire modifié ✓');
-  await renderCommentsScreen();
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 let currentReplyToIndex = null;
 /* ---------- RÉPONSE VIDÉO À UN COMMENTAIRE ---------- */
@@ -2304,21 +2113,12 @@ function containsForbiddenWord(text, forbiddenWords){
 /* ---------- BROUILLONS DE COMMENTAIRES ---------- */
 /* ---------- INVITATION CO-CRÉATEUR ---------- */
 async function acceptCoCreatorInvite(postId){
-  const p = await safeGet('post:' + postId, true);
-  if(!p || p.coCreatorUsername !== currentUser) return;
-  p.coCreatorStatus = 'accepted';
-  await saveWithRetry('post:' + postId, p, true);
-  await createNotification(p.userId, 'co_creator_accepted', currentUser, postId, null);
-  showToast('Invitation acceptée ✓ — vous êtes maintenant crédité(e) sur cette publication');
-  await openSinglePostView(postId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function declineCoCreatorInvite(postId){
-  const p = await safeGet('post:' + postId, true);
-  if(!p || p.coCreatorUsername !== currentUser) return;
-  p.coCreatorStatus = 'declined';
-  await saveWithRetry('post:' + postId, p, true);
-  showToast('Invitation refusée');
-  await openSinglePostView(postId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function saveCommentDraft(){
   if(!currentCommentsPostId || !currentUser) return;

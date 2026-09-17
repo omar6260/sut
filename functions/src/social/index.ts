@@ -5,7 +5,7 @@ import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { FieldValue, Transaction } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { REGION, db, kvGet, kvSet, kvRef, kvDelete, encodeId, requireAuth, requireUsername, requireRole, audit, setting, nowIso, genId } from '../lib/kv.js';
+import { REGION, db, kvGet, kvSet, kvRef, kvDelete, decodeId, requireAuth, requireUsername, requireRole, audit, setting, nowIso, genId } from '../lib/kv.js';
 import * as L from './logic.js';
 
 const username = z.string().min(1).max(60);
@@ -22,12 +22,20 @@ async function uidOf(name: string): Promise<string | null> {
 async function putServer(key: string, data: unknown): Promise<void> {
   await kvRef(key).set({ data, owner: 'server', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
-/** Préférence privée d'un utilisateur (users/{uid}/private/<clé encodée>) — lue par l'Admin SDK, jamais par un autre client. */
+/** Préférence privée d'un utilisateur — lue par l'Admin SDK, jamais par un autre client. L'espace privé est par (uid, appareil) :
+ *  ID = encode('<deviceId>|<clé>') ; on retient la préférence la plus récemment modifiée parmi les appareils du compte. */
 async function privatePref(name: string, key: string): Promise<any> {
   const uid = await uidOf(name);
   if (!uid) return null;
-  const snap = await db().collection(`users/${uid}/private`).doc(encodeId(key)).get();
-  return snap.exists ? snap.data()!.data : null;
+  const snap = await db().collection(`users/${uid}/private`).get();
+  let best: { at: number; data: any } | null = null;
+  for (const d of snap.docs) {
+    const raw = decodeId(d.id);
+    if (raw !== key && !raw.endsWith('|' + key)) continue;
+    const at = d.data().updatedAt && typeof d.data().updatedAt.toMillis === 'function' ? d.data().updatedAt.toMillis() : 0;
+    if (!best || at >= best.at) best = { at, data: d.data().data };
+  }
+  return best ? best.data : null;
 }
 /** createNotification l. 11452-11459 : respecte notificationPreferences du destinataire, forme notif: identique. Renvoie la clé ou null. */
 async function sendNotification(toUser: string, type: string, fromUser: string, postId?: string | null, text?: string | null): Promise<string | null> {

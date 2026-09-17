@@ -615,20 +615,7 @@ async function completeOnboarding(){
   }
   await recordDeviceAccountLink(name);
   googleSignInEmail = null;
-  const referralCode = document.getElementById('onboard-referral').value.trim();
-  if(referralCode && referralCode !== name){
-    const referrer = await safeGet('user:' + referralCode, true);
-    if(referrer){
-      referrer.referralCount = (referrer.referralCount || 0) + 1;
-      await saveWithRetry('user:' + referralCode, referrer, true);
-      const rewardPoints = await getReferralRewardPoints();
-      if(rewardPoints > 0){
-        const currentReferrerPoints = await fetchLoyaltyPoints(referralCode);
-        await saveWithRetry('loyaltypoints:' + referralCode, currentReferrerPoints + rewardPoints, true);
-      }
-      await createNotification(referralCode, 'referral', name, null, String(rewardPoints));
-    }
-  }
+  /* phase 06 : parrainage (referralCount et points de fidélité du parrain) appliqué par le serveur — voir src/platform/overrides/30-social.js */
   showToast('Bienvenue à bord ⛵');
   if(pendingSharedProductId){
     const sharedProduct = await safeGet('product:' + pendingSharedProductId, true);

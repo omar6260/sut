@@ -529,13 +529,8 @@ async function startLiveFromQuickPanel(){
   showToast(isScheduledForLater ? 'Live programmé pour le ' + new Date(scheduledTimeRaw).toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'}) + ' ✓' : (autoApprove ? (isAudioOnly ? 'Podcast validé automatiquement — visible par tous ✓' : 'Live validé automatiquement — visible par tous ✓') : 'Demande envoyée — en attente de validation ✓'));
 }
 async function notifyFollowersOfScheduledLive(l){
-  const author = await safeGet('user:' + l.username, true);
-  if(!author || !author.followers || author.followers.length === 0) return;
-  for(const followerUsername of author.followers){
-    const pref = await safeGet('livenotifypref:' + followerUsername + '__' + l.username, false).catch(() => null);
-    const notifyAll = !pref || pref.notifyAll !== false;
-    if(notifyAll) await createNotification(followerUsername, 'live_scheduled', l.username, l.id, null);
-  }
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function startScheduledLiveNow(liveId){
   const l = await safeGet('live:' + liveId, true);

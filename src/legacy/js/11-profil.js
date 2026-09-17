@@ -342,46 +342,8 @@ async function isBlockedEitherWay(otherUsername){
   return false;
 }
 async function toggleBlockUser(){
-  if(!currentViewedProfileUsername) return;
-  const me = (await safeGet('user:' + currentUser, true)) || {username: currentUser, createdAt: new Date().toISOString()};
-  if(!me.blocked) me.blocked = [];
-  const idx = me.blocked.indexOf(currentViewedProfileUsername);
-  if(idx === -1 && !me.isTrainer){
-    const target = await safeGet('user:' + currentViewedProfileUsername, true);
-    if(target && target.isTrainer){
-      openTrainerDisputeForm(currentViewedProfileUsername);
-      return;
-    }
-  }
-  let shouldAlsoReport = false;
-  if(idx === -1){
-    shouldAlsoReport = confirm('Ce blocage est-il lié à du harcèlement ou un comportement abusif ? Cliquez sur OK pour aussi signaler ce compte aux modérateurs de Suktum, avec vos derniers échanges en pièce jointe.');
-  }
-  if(idx === -1){
-    me.blocked.push(currentViewedProfileUsername);
-    if(me.muted) me.muted = me.muted.filter(u => u !== currentViewedProfileUsername);
-    const sharedFeedKeyOnBlock = threadKeyFor(currentUser, currentViewedProfileUsername);
-    await window.storage.delete('sharedfeed:' + sharedFeedKeyOnBlock, true).catch(() => {});
-    // Rompre les abonnements mutuels dans les deux sens, comme réellement exigé
-    if(me.following) me.following = me.following.filter(u => u !== currentViewedProfileUsername);
-    const them = await safeGet('user:' + currentViewedProfileUsername, true);
-    if(them){
-      if(them.followers) them.followers = them.followers.filter(u => u !== currentUser);
-      if(them.following) them.following = them.following.filter(u => u !== currentUser);
-      await saveWithRetry('user:' + currentViewedProfileUsername, them, true);
-    }
-    if(me.followers) me.followers = me.followers.filter(u => u !== currentViewedProfileUsername);
-    await saveWithRetry('blockevent:' + currentViewedProfileUsername + '__' + Date.now(), { blockedUser: currentViewedProfileUsername, blockerUser: currentUser, createdAt: new Date().toISOString() }, true);
-    await checkBlockSpikeThreshold(currentViewedProfileUsername);
-    if(shouldAlsoReport) await fileHarassmentReportWithEvidence(currentViewedProfileUsername);
-    showToast('@' + currentViewedProfileUsername + ' est bloqué(e) — vous ne verrez plus son contenu');
-  } else {
-    me.blocked.splice(idx, 1);
-    showToast('@' + currentViewedProfileUsername + ' débloqué(e)');
-  }
-  await saveWithRetry('user:' + currentUser, me, true);
-  await renderUserProfile();
-  await renderMuteButton(currentViewedProfileUsername);
+  /* phase 06 : logique serveur — voir src/platform/overrides/30-social.js */
+  return;
 }
 async function openLikersList(postId){
   const p = await safeGet('post:' + postId, true);
