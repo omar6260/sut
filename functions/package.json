@@ -11,6 +11,7 @@
     "test": "tsc && node --test lib/test/*.test.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.126.0",
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.3.0",
     "zod": "^3.25.76"
