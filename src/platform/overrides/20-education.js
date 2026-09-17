@@ -6,7 +6,7 @@
 (function () {
   const P = window.SuktumPlatform;
   if (window.__SUKTUM_STORAGE_INJECTED || !P || !P.api || !P.env) return; // pas de plateforme (tests mémoire) → legacy intact
-  const call = (name, data) => P.api.call(name, Object.assign({ currentUser }, data));
+  const call = (name, data) => P.api.call(name, Object.assign({ currentUser, username: currentUser }, data)); // le serveur Éducation attend `username`
   const fail = (e) => { showToast(e.message || 'Erreur serveur'); };
   const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
   const clear = (...ids) => { for (const id of ids) { const el = document.getElementById(id); if (el) el.value = ''; } };

@@ -8,7 +8,7 @@ import { test, expect, BACKEND } from '../support/fixtures.js';
 test.skip(BACKEND !== 'firebase', 'logique serveur = backend firebase');
 
 const api = (page, name, data) => page.evaluate(async ({ name, data }) => {
-  try { return { ok: true, result: await window.SuktumPlatform.api.call(name, Object.assign({ currentUser: typeof currentUser !== 'undefined' ? currentUser : null }, data)) }; }
+  try { return { ok: true, result: await window.SuktumPlatform.api.call(name, Object.assign({ currentUser: typeof currentUser !== 'undefined' ? currentUser : null, username: typeof currentUser !== 'undefined' ? currentUser : null }, data)) }; }
   catch (e) { return { ok: false, code: e.code, message: e.message }; }
 }, { name, data });
 
@@ -149,7 +149,7 @@ test.describe('Éducation — logique serveur', () => {
     expect(r.result.outcome).toBe('autoApproved');
     expect(await suktum.storage.readJSON(`enrollment:${course.id}__Eleve_Awa`)).toMatchObject({ status: 'approved', price: 5000 });
     // Le nom transmis doit appartenir au compte appelant.
-    expect(await api(c, 'enroll', { courseId: course2.id, currentUser: 'Eleve_Ibou' })).toMatchObject({ ok: false, code: 'functions/permission-denied' });
+    expect(await api(c, 'enroll', { courseId: course2.id, currentUser: 'Eleve_Ibou', username: 'Eleve_Ibou' })).toMatchObject({ ok: false, code: 'functions/permission-denied' });
   });
 
   test('abonnement Éducation : prix du réglage, expiration à 30 jours, achat et paiement écrits par le serveur ; codes d’activation à usage unique', async ({ suktum }) => {
