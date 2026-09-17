@@ -58,6 +58,17 @@ export const test = base.extend({
         return page;
       },
 
+      /** Backend firebase : pose des claims puis force le rafraîchissement du jeton dans la page. */
+      async grantRole(page, claims) {
+        await storage.setClaims(page.suktumDevice, claims);
+        await page.evaluate(() => window.SuktumPlatform.auth.currentUser.getIdToken(true));
+      },
+
+      /** Backend firebase : « Continuer avec Google » avec un jeton factice accepté par l'émulateur. */
+      async googleSignIn(page, { sub, email }) {
+        return page.evaluate(async (p) => { const r = await window.SuktumPlatform.authApi.signInWithGoogleForTests(p); await window.signInWithGoogleSuktum(r); return r; }, { sub, email });
+      },
+
       /** Dernier toast affiché sur un appareil (ou null). */
       lastToast(page) {
         const mine = toasts.filter((t) => t.device === page.suktumDevice);

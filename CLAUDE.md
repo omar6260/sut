@@ -61,7 +61,12 @@ docs/journal/           journal des phases, décisions, a-traiter.md
 - `npm run test:e2e:firebase` — la même suite e2e contre l'émulateur Firestore (adaptateur réel, 1 worker)
 - `npm run test:rules` — règles Firestore + adaptateur sur émulateur (`node --test`)
 - `npm run rules` — régénère `firestore.rules` depuis `docs/inventaire/classification.md` (jamais à la main)
-- `npm --prefix functions test` — tests unitaires des fonctions
+- `npm --prefix functions test` — tests unitaires des fonctions (tsc + node --test)
+- `node scripts/bootstrap-superadmin.mjs <email>` — premier super-admin (manuel, une fois par projet)
+- `node scripts/neutralize-legacy-secrets.mjs` — réapplique la neutralisation des fonctions à secrets si `src/legacy` est régénéré
+
+## État (2026-09-17)
+Phases 00–05 mergées et taguées. Identité : Firebase Auth (anonyme lié à l'appareil, Google pour retrouver son compte), rôles en custom claims, PIN/2FA vérifiés serveur. `src/legacy` est modifiable depuis la phase 05 (`verify-split` n'est plus IDENTIQUE : documentaire).
 
 ## Sous-agents disponibles
 - `cartographe` — analyse du legacy, lecture seule.

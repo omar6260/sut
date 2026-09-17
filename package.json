@@ -11,9 +11,9 @@
     "build": "node scripts/build.mjs",
     "serve": "node scripts/serve.mjs",
     "test:e2e": "playwright test",
-    "emulators": "firebase emulators:start --project suktum-dev",
-    "test:rules": "firebase emulators:exec --only auth,firestore --project suktum-dev \"node --test --test-concurrency=1 tests/rules/*.test.mjs\"",
-    "test:e2e:firebase": "firebase emulators:exec --only auth,firestore --project suktum-dev \"SUKTUM_BACKEND=firebase playwright test --workers=1\"",
+    "emulators": "npm --prefix functions run build && firebase emulators:start --project suktum-dev",
+    "test:rules": "npm --prefix functions run build && firebase emulators:exec --only auth,firestore,functions --project suktum-dev \"node --test --test-concurrency=1 tests/rules/*.test.mjs\"",
+    "test:e2e:firebase": "npm --prefix functions run build && firebase emulators:exec --only auth,firestore,functions --project suktum-dev \"SUKTUM_BACKEND=firebase playwright test --workers=1\"",
     "rules": "node scripts/generate-rules.mjs"
   },
   "devDependencies": {

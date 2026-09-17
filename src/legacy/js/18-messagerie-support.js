@@ -646,19 +646,8 @@ async function trashMyNote(noteId){
   await renderMyNotes();
 }
 async function createTechTeamMember(){
-  const name = document.getElementById('new-techteam-name').value.trim();
-  const pin = document.getElementById('new-techteam-pin').value;
-  if(!name || !pin){ showToast('Renseignez un nom et un mot de passe'); return; }
-  const members = (await safeGet('settings:techteammembers', true)) || [];
-  const mustChangePassword = document.getElementById('techteam-must-change').checked;
-  members.push({ name, pinHash: await sha256Hex(pin), mustChangePassword });
-  await saveWithRetry('settings:techteammembers', members, true);
-  document.getElementById('new-techteam-name').value = '';
-  document.getElementById('new-techteam-pin').value = '';
-  document.getElementById('techteam-must-change').checked = false;
-  showToast('Accès créé ✓');
-  await logAdminAction('Accès équipe technique créé', name);
-  await renderTechTeamMembersList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('createTechTeamMember') : undefined;
 }
 async function deleteTechTeamMember(name){
   let members = (await safeGet('settings:techteammembers', true)) || [];

@@ -16,12 +16,13 @@ service cloud.firestore {
 
     // Réglages partagés : lecture par tous les authentifiés ; secrets et rôles en lecture seule côté client.
     match /kv_settings/{id} {
-      allow read: if authed();
-      allow create: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']) && request.resource.data.owner == request.auth.uid;
-      allow update: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']) && ownerUnchanged();
-      allow delete: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']);
+      allow read: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'adminpin_hash', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers', 'adminpin_hash']);
+      allow create: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'adminpin_hash', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']) && request.resource.data.owner == request.auth.uid;
+      allow update: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'adminpin_hash', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']) && ownerUnchanged();
+      allow delete: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'adminpin_hash', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']);
     }
 
+    // usernames/, auth_secrets/, auth_attempts/ : serveur uniquement (aucune règle → refusé).
     // Collections kv_<prefixe> (shared = true dans le legacy).
     match /{collection}/{id} {
       allow read: if authed() && isKv(collection) && (!isPrivate(collection) || isOwner());

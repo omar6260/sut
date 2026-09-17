@@ -89,36 +89,16 @@ function populateCountrySelects(){
 /* ---------- CONNEXION AVEC GOOGLE ---------- */
 const GOOGLE_CLIENT_ID = ""; // ⚠️ À renseigner par l'expert (Google Cloud Console → Identifiants OAuth)
 function decodeJwtPayload(token){
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-  return JSON.parse(jsonPayload);
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('decodeJwtPayload') : undefined;
 }
 function sanitizeUsernameCandidate(raw){
   return (raw || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 20) || 'Utilisateur';
 }
 let googleSignInEmail = null;
 async function handleGoogleCredentialResponse(response){
-  try{
-    const payload = decodeJwtPayload(response.credential);
-    googleSignInEmail = payload.email;
-    const allUsers = await fetchUsers();
-    const matchedAccount = allUsers.find(u => u.googleEmail === payload.email);
-    if(matchedAccount){
-      const recoveryArea = document.getElementById('google-account-recovery-area');
-      document.getElementById('google-recovery-btn').textContent = 'Continuer en tant que @' + matchedAccount.username;
-      document.getElementById('google-recovery-btn').dataset.username = matchedAccount.username;
-      recoveryArea.style.display = 'block';
-      document.getElementById('google-signin-status').textContent = '✓ Connecté avec ' + payload.email;
-      return;
-    }
-    const candidate = sanitizeUsernameCandidate(payload.given_name || payload.name || payload.email.split('@')[0]);
-    const usernameInput = document.getElementById('onboard-username');
-    usernameInput.value = candidate;
-    document.getElementById('google-signin-status').textContent = '✓ Connecté avec ' + payload.email + ' — choisissez votre pays puis appuyez sur Commencer.';
-  } catch(e){
-    document.getElementById('google-signin-status').textContent = 'Connexion Google indisponible pour l’instant.';
-  }
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('handleGoogleCredentialResponse') : undefined;
 }
 async function recoverAccountViaGoogle(){
   const username = document.getElementById('google-recovery-btn').dataset.username;
@@ -129,22 +109,8 @@ async function recoverAccountViaGoogle(){
   await logInAsExistingUser(existing, username, country);
 }
 function initGoogleSignIn(){
-  const statusEl = document.getElementById('google-signin-status');
-  if(!statusEl) return;
-  if(!GOOGLE_CLIENT_ID){
-    statusEl.textContent = 'Connexion avec Google : en cours de configuration par l’équipe.';
-    return;
-  }
-  if(typeof google === 'undefined' || !google.accounts){
-    statusEl.textContent = 'Connexion Google indisponible (pas de connexion internet ?).';
-    return;
-  }
-  try{
-    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredentialResponse });
-    google.accounts.id.renderButton(document.getElementById('google-signin-button'), { theme: 'filled_black', size: 'large', shape: 'pill', width: 260 });
-  }catch(e){
-    statusEl.textContent = 'Connexion Google indisponible pour l’instant.';
-  }
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('initGoogleSignIn') : undefined;
 }
 
 const PIROGUE_LOGO_DATAURL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAC0CAYAAACqnKHoAAAEw0lEQVR4nO3dMW4dRRjA8QXRWSDRICioQEoXWpqIC9DScAAkLgBngAsgcQAaWi6A0tCSDolULkA0loJcmwIsHMfP3rfvm53vm/n92jj7Ni/z35lZP6+XBQAAAAAAAAAAAAAAAAAAAAAAAAAAAACAe73W+wSId/b4ydWhP7t89tT/+UBe730CwHYChsIEDIUJGAoT8ET++vmH3qdAMAFP5vLi/OAdauoR8IQuL86vhDwGAU9MxPUJeHIirk3AiLgwAbMsi31xVQLmJSKuRcC8QsR1CJg7ibgGAXOQfXF+AuZBIs5LwKwi4pwEzGoizkfAHMW+OBcBs4mIcxAwm4m4PwFzEhH3JWBOZl/cj4AJI+L9CZhQIt6XgAkn4v0ImCbsi/chYJoScVsCpjkRtyPgifz9xafdXtuSug2/anJAh3696PNHL0Jf583vf9r0987eft+4C+KNHNBeAUd698dfjcUN3uh9ArAsy/LnZx+FLa9nuhjYA0NhAmY4kbN5dgKGwgQMhQmYIc2yjBYwFCZgKEzADGuGZbSAoTABM7TRZ2EBQ2EChsIEzPBGXkYLGArz44Sks+VBAbM+JEDAnGzrkzkiXT+uZ7aQBTyZDLG1dHlxfjVTxPbAExk93mszPTxPwAxplogFzLBmeJStgBneyBELmCmMGrGAmcaIEQuYqYy2LxYwUxolYgEzrREiFjBTqx6xgJle5X2xgOE/FSMWMNxQLWIBwy2VIhYw3KHKvljAcI/sEQsYHpA5YgHDClkjFjCslHFfLGA4UqaIPdSOKY3y4DsBU84o8UUQMLsTYBwBcxTx5SLgyQhwLO5CT+SdTz7vfQoE63Y1Pnv8JM2teIhw+ezp7j3t/oLCZXR7hrzLC4mWWbWOuenBhQv/ahVy+EHXRvv80Yvol4auPvjtrVVfFxlz2LeRzLawznUrESGfdIBTozULM4q1s+8hW2PeNAObbSHW1ll59Re3itYsTHWnzr6HrInZJ7GgsNUB9/iUCcxqbW/dZ+BWyw/YQ+/x2z1gYLujAm61jO59FYMtet68umYGhsLS/EC/WRiOt2lJHPk94T+++SXqUNDFe19/HHasY7ep3ZfQkf942Fvv8ds9YGC7TQFH343ufRWDLaLH7ZauzMBQWJqAzcJUkmW8bg7YZ6Mhztae0szAy5Lnqgb3yTROUwUMHOekgFssozNd3eC2FuPzlI7MwFBYms9C32QWhnVClsDRz8v68NsvIw8HYX7/6rvQ4526DU25hI5+kyBCxnGZMmBgnZCAW9yNzni1Y14txmNEN6lnYBGTQeZxmDrgZcn95jG+7OMvLGCfjYb1onpJPwMvS/6rIGOqMO5KBLwsNd5MxlFlvIUGbBkND4vspMwMvCx1rorUVmmchc+Yfncw3C/1DGwZDYdF91FqCQ28TMBQWJOALaPhVS26MANDYQKGwpoFbBkN/2vVgxkYChMwFNY0YMtoaNuBGRgKEzAU1jxgy2hm1nr8m4GhsN1nRz9uyOj2XHV2Xd6KmVH02iqm2Z+KmWoy3N/pfgKHCJpsMgR7W7oTuouY6SVjtDelPrm7iJnWskd7U5kTvYuYiVIp2ptKnvRdxMyxqkYLAAAAAAAAAAAAAAAAAADU8A9dpdZV/mfp0QAAAABJRU5ErkJggg==";

@@ -1,0 +1,20 @@
+{
+  "name": "suktum-functions",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22"
+  },
+  "main": "lib/src/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test lib/test/*.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

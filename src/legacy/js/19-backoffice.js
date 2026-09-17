@@ -17,61 +17,16 @@ function checkPasswordStrength(pw){
 }
 /* ---------- CHANGEMENT DE MOT DE PASSE (DG / MODÉRATEUR / ÉQUIPE) ---------- */
 async function enforceFirstLoginPasswordChange(listKey, identifier, identifierType, displayName){
-  showToast('Vous devez choisir un nouveau mot de passe avant de continuer');
-  while(true){
-    const newPin = prompt('Nouveau mot de passe pour ' + displayName + ' (8+ caractères, majuscule, minuscule, chiffre, caractère spécial) — obligatoire avant de continuer :');
-    if(newPin === null){ showToast('Vous devez changer votre mot de passe pour accéder au tableau de bord'); continue; }
-    const {strong} = checkPasswordStrength(newPin);
-    if(!strong){ showToast('Ce mot de passe ne respecte pas encore toutes les règles de sécurité'); continue; }
-    const newPinHash = await sha256Hex(newPin);
-    const superHash = await safeGet('settings:adminpin_hash', true);
-    if(newPinHash === superHash){ showToast('Choisissez un mot de passe différent du vôtre'); continue; }
-    const list = (await safeGet(listKey, true)) || [];
-    if(list.some(m => m.pinHash === newPinHash)){ showToast('Ce mot de passe est déjà utilisé par un autre compte administrateur'); continue; }
-    const target = identifierType === 'name' ? list.find(m => m.name === identifier) : list[identifier];
-    if(!target) return;
-    target.pinHash = newPinHash;
-    target.mustChangePassword = false;
-    await saveWithRetry(listKey, list, true);
-    currentAdminPasswordHash = newPinHash;
-    showToast('Mot de passe changé ✓');
-    return;
-  }
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('enforceFirstLoginPasswordChange') : undefined;
 }
 async function toggleAdminAccountActive(listKey, identifier, identifierType, displayName){
-  const list = (await safeGet(listKey, true)) || [];
-  const target = identifierType === 'name' ? list.find(m => m.name === identifier) : list[identifier];
-  if(!target) return;
-  const currentlyActive = target.active !== false;
-  const action = currentlyActive ? 'Suspendre' : 'Réactiver';
-  if(!confirm(action + ' l’accès de ' + displayName + ' ?' + (currentlyActive ? ' Toute session déjà ouverte sera coupée dans les 30 secondes.' : ''))) return;
-  target.active = !currentlyActive;
-  await saveWithRetry(listKey, list, true);
-  showToast((currentlyActive ? 'Accès suspendu' : 'Accès réactivé') + ' pour ' + displayName + ' ✓');
-  await logAdminAction(currentlyActive ? 'Accès administrateur suspendu' : 'Accès administrateur réactivé', displayName);
-  if(listKey === 'settings:regionaladmins') await loadRegionalAdminsList();
-  else if(listKey === 'settings:moderators') await loadModeratorsList();
-  else if(listKey === 'settings:techteammembers') await renderTechTeamMembersList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('toggleAdminAccountActive') : undefined;
 }
 async function changeAdminAccountPassword(listKey, identifier, identifierType, displayName){
-  const newPin = prompt('Nouveau mot de passe pour ' + displayName + ' (8+ caractères, majuscule, minuscule, chiffre, caractère spécial) :');
-  if(!newPin) return;
-  const {strong} = checkPasswordStrength(newPin);
-  if(!strong){ showToast('Ce mot de passe ne respecte pas toutes les règles de sécurité — réessayez'); return; }
-  const newPinHash = await sha256Hex(newPin);
-  const superHash = await safeGet('settings:adminpin_hash', true);
-  if(newPinHash === superHash){ showToast('Choisissez un mot de passe différent du vôtre'); return; }
-  const list = (await safeGet(listKey, true)) || [];
-  if(list.some(m => m.pinHash === newPinHash)){ showToast('Ce mot de passe est déjà utilisé par un autre compte administrateur'); return; }
-  const target = identifierType === 'name' ? list.find(m => m.name === identifier) : list[identifier];
-  if(!target){ showToast('Compte introuvable'); return; }
-  target.pinHash = newPinHash;
-  await saveWithRetry(listKey, list, true);
-  showToast('Mot de passe de ' + displayName + ' changé ✓');
-  await logAdminAction('Mot de passe changé', displayName);
-  if(listKey === 'settings:regionaladmins') await loadRegionalAdminsList();
-  else if(listKey === 'settings:moderators') await loadModeratorsList();
-  else if(listKey === 'settings:techteammembers') await renderTechTeamMembersList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('changeAdminAccountPassword') : undefined;
 }
 function renderPasswordStrengthLabel(pw){
   const {checks, passed} = checkPasswordStrength(pw);
@@ -105,18 +60,8 @@ function updateAdminPasswordStrength(){
   el.textContent = r.text;
 }
 async function loadAdminLoginScreen(){
-  const hash = await safeGet('settings:adminpin_hash', true);
-  const descEl = document.getElementById('admin-login-desc');
-  const input = document.getElementById('admin-pin-input');
-  input.value = '';
-  document.getElementById('admin-password-strength').textContent = '';
-  if(hash){
-    descEl.textContent = "Entrez le mot de passe d'administration.";
-    input.dataset.mode = 'verify';
-  } else {
-    descEl.textContent = "Première visite : créez un mot de passe d'administration blindé (8+ caractères, majuscule, minuscule, chiffre, caractère spécial).";
-    input.dataset.mode = 'create';
-  }
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('loadAdminLoginScreen') : undefined;
 }
 let adminScope = 'all';
 let isModerator = false;
@@ -706,20 +651,8 @@ async function fetchCustomRoles(){
   return (await safeGet('settings:customroles', true)) || [];
 }
 async function createCustomRole(){
-  const name = document.getElementById('new-custom-role-name').value.trim();
-  const pin = document.getElementById('new-custom-role-pin').value;
-  const domains = Array.from(document.querySelectorAll('.custom-role-domain-checkbox:checked')).map(cb => cb.value);
-  if(!name || !pin){ showToast('Renseignez un nom et un mot de passe'); return; }
-  if(domains.length === 0){ showToast('Cochez au moins un domaine'); return; }
-  const roles = await fetchCustomRoles();
-  roles.push({ id: 'role_' + Date.now(), name, pinHash: await sha256Hex(pin), domains });
-  await saveWithRetry('settings:customroles', roles, true);
-  document.getElementById('new-custom-role-name').value = '';
-  document.getElementById('new-custom-role-pin').value = '';
-  document.querySelectorAll('.custom-role-domain-checkbox').forEach(cb => cb.checked = false);
-  showToast('Rôle créé ✓');
-  await logAdminAction('Rôle personnalisé créé', name + ' (' + domains.join(', ') + ')');
-  await renderCustomRolesList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('createCustomRole') : undefined;
 }
 async function deleteCustomRole(roleId){
   let roles = await fetchCustomRoles();
@@ -1021,180 +954,12 @@ let currentAdminDomain = 'general';
 let dailySummaryGeneratedThisSession = false;
 let currentPayoutSpecialistName = null;
 async function checkAdminPin(){
-  const input = document.getElementById('admin-pin-input');
-  const pw = input.value;
-  if(input.dataset.mode === 'create'){
-    const {strong} = checkPasswordStrength(pw);
-    if(!strong){ showToast('Le mot de passe ne respecte pas encore toutes les règles'); return; }
-    const hash = await sha256Hex(pw);
-    await saveWithRetry('settings:adminpin_hash', hash, true);
-    adminScope = 'all';
-    isModerator = false;
-    currentAdminDomain = 'general';
-    currentAdminName = 'Propriétaire';
-    currentAdminPasswordHash = hash;
-    isGenuineOwnerSession = true;
-    currentCustomRoleDomains = null;
-    isTechTeamMember = false;
-    document.body.classList.remove('techteam-mode');
-    currentTechTeamName = null;
-    await logAdminLogin('Propriétaire (création)');
-    showToast('Mot de passe créé ✓');
-    go('admin');
-    return;
-  }
-  if(!pw){ showToast('Entrez votre mot de passe'); return; }
-  const storedHash = await safeGet('settings:adminpin_hash', true);
-  const hash = await sha256Hex(pw);
-  if(hash === storedHash){
-    adminScope = 'all';
-    isModerator = false;
-    currentAdminDomain = 'general';
-    currentAdminName = 'Propriétaire';
-    currentAdminPasswordHash = hash;
-    isGenuineOwnerSession = true;
-    currentCustomRoleDomains = null;
-    isTechTeamMember = false;
-    document.body.classList.remove('techteam-mode');
-    currentTechTeamName = null;
-    await logAdminLogin('Propriétaire');
-    go('admin');
-    return;
-  }
-  const backupCodes = (await safeGet('settings:admin_backup_codes', true)) || [];
-  const codeMatchIdx = backupCodes.findIndex(c => c.hash === hash && !c.used);
-  if(codeMatchIdx !== -1){
-    backupCodes[codeMatchIdx].used = true;
-    await saveWithRetry('settings:admin_backup_codes', backupCodes, true);
-    adminScope = 'all';
-    isModerator = false;
-    currentAdminDomain = 'general';
-    currentAdminName = 'Propriétaire';
-    currentAdminPasswordHash = storedHash;
-    isGenuineOwnerSession = true;
-    currentCustomRoleDomains = null;
-    isTechTeamMember = false;
-    document.body.classList.remove('techteam-mode');
-    currentTechTeamName = null;
-    await logAdminLogin('Propriétaire (code de secours)');
-    showToast('Connecté avec un code de secours — pensez à changer votre mot de passe');
-    go('admin');
-    return;
-  }
-  const regionalAdmins = (await safeGet('settings:regionaladmins', true)) || [];
-  const regionalMatch = regionalAdmins.find(a => a.pinHash === hash);
-  if(regionalMatch){
-    if(!regionalMatch.active && regionalMatch.active !== undefined){ showToast('Cet accès a été désactivé par le propriétaire'); return; }
-    const regionalIndex = regionalAdmins.indexOf(regionalMatch);
-    adminScope = regionalMatch.country;
-    isModerator = false;
-    currentAdminName = regionalMatch.name;
-    currentAdminPasswordHash = hash;
-    currentAdminDomain = regionalMatch.domain || 'general';
-    isGenuineOwnerSession = false;
-    currentCustomRoleDomains = null;
-    isTechTeamMember = false;
-    document.body.classList.remove('techteam-mode');
-    currentTechTeamName = null;
-    await logAdminLogin('DG — ' + adminScope);
-    if(regionalMatch.mustChangePassword) await enforceFirstLoginPasswordChange('settings:regionaladmins', regionalIndex, 'index', regionalMatch.name);
-    go('admin');
-    return;
-  }
-  const moderators = (await safeGet('settings:moderators', true)) || [];
-  const modMatch = moderators.find(m => m.pinHash === hash);
-  if(modMatch){
-    if(!modMatch.active && modMatch.active !== undefined){ showToast('Cet accès a été désactivé par le propriétaire'); return; }
-    if(modMatch.expiresAt && new Date(modMatch.expiresAt) <= new Date()){ showToast('Cet accès temporaire a expiré'); return; }
-    const modIndex = moderators.indexOf(modMatch);
-    adminScope = modMatch.country || 'all';
-    isModerator = true;
-    currentAdminDomain = modMatch.restrictedDomain || 'moderation';
-    currentAdminName = modMatch.name;
-    currentAdminPasswordHash = hash;
-    isGenuineOwnerSession = false;
-    currentCustomRoleDomains = null;
-    isTechTeamMember = false;
-    document.body.classList.remove('techteam-mode');
-    currentTechTeamName = null;
-    await logAdminLogin('Modérateur');
-    if(modMatch.mustChangePassword) await enforceFirstLoginPasswordChange('settings:moderators', modIndex, 'index', modMatch.name);
-    go('admin');
-    return;
-  }
-  const payoutSpecialists = (await safeGet('settings:payoutspecialists', true)) || [];
-  const payoutMatch = payoutSpecialists.find(s => s.pinHash === hash);
-  if(payoutMatch){
-    if(!payoutMatch.active){ showToast('Cet accès a été désactivé par le propriétaire'); return; }
-    isPayoutSpecialist = true;
-    isModerator = false;
-    adminScope = 'all';
-    isGenuineOwnerSession = false;
-    currentCustomRoleDomains = null;
-    isTechTeamMember = false;
-    document.body.classList.remove('techteam-mode');
-    currentTechTeamName = null;
-    currentAdminName = payoutMatch.name;
-    currentPayoutSpecialistName = payoutMatch.name;
-    currentAdminPasswordHash = hash;
-    document.getElementById('payout-specialist-name').textContent = payoutMatch.name;
-    await logAdminLogin('Spécialiste reversements');
-    go('payout-specialist');
-    await renderPayoutSpecialistList();
-    await renderCoinWithdrawalSpecialistList();
-    return;
-  }
-  const customRoles = (await safeGet('settings:customroles', true)) || [];
-  const customRoleMatch = customRoles.find(r => r.pinHash === hash);
-  if(customRoleMatch){
-    adminScope = 'all';
-    isModerator = false;
-    isPayoutSpecialist = false;
-    isGenuineOwnerSession = false;
-    currentAdminName = customRoleMatch.name;
-    currentAdminDomain = 'general';
-    currentCustomRoleDomains = customRoleMatch.domains;
-    currentAdminPasswordHash = hash;
-    isTechTeamMember = false;
-    document.body.classList.remove('techteam-mode');
-    currentTechTeamName = null;
-    await logAdminLogin('Rôle personnalisé — ' + customRoleMatch.name);
-    go('admin');
-    return;
-  }
-  const techTeamMembers = (await safeGet('settings:techteammembers', true)) || [];
-  const techTeamMatch = techTeamMembers.find(m => m.pinHash === hash);
-  if(techTeamMatch){
-    if(!techTeamMatch.active && techTeamMatch.active !== undefined){ showToast('Cet accès a été désactivé par le propriétaire'); return; }
-    isTechTeamMember = true;
-    currentTechTeamName = techTeamMatch.name;
-    currentAdminName = techTeamMatch.name;
-    currentAdminPasswordHash = hash;
-    isGenuineOwnerSession = false;
-    currentCustomRoleDomains = null;
-    document.body.classList.add('techteam-mode');
-    await logAdminLogin('Équipe technique — ' + techTeamMatch.name);
-    if(techTeamMatch.mustChangePassword) await enforceFirstLoginPasswordChange('settings:techteammembers', techTeamMatch.name, 'name', techTeamMatch.name);
-    go('techteam-home');
-    return;
-  }
-  await logFailedAdminAccessAttempt();
-  showToast('Mot de passe incorrect');
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('checkAdminPin') : undefined;
 }
 async function logFailedAdminAccessAttempt(){
-  const id = 'failedaccess_' + Date.now();
-  await saveWithRetry('failedaccessattempt:' + id, { createdAt: new Date().toISOString() }, true).catch(() => {});
-  const keys = await safeList('failedaccessattempt:', true);
-  const attempts = [];
-  for(const k of keys){ const a = await safeGet(k, true).catch(() => null); if(a) attempts.push(a); }
-  const oneHourAgo = Date.now() - 60*60*1000;
-  const recentCount = attempts.filter(a => new Date(a.createdAt).getTime() >= oneHourAgo).length;
-  if(recentCount >= 5){
-    const existing = await safeGet('settings:criticalAlertUnauthorizedAccess', true);
-    if(!existing || new Date(existing.createdAt).getTime() < oneHourAgo){
-      await saveWithRetry('settings:criticalAlertUnauthorizedAccess', { count: recentCount, createdAt: new Date().toISOString() }, true);
-    }
-  }
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('logFailedAdminAccessAttempt') : undefined;
 }
 function updateAdminNewPasswordStrength(){
   const pw = document.getElementById('admin-new-pin').value;
@@ -1205,99 +970,24 @@ function updateAdminNewPasswordStrength(){
   el.textContent = r.text;
 }
 async function changeAdminPin(){
-  const newPw = document.getElementById('admin-new-pin').value;
-  const {strong} = checkPasswordStrength(newPw);
-  if(!strong){ showToast('Le nouveau mot de passe ne respecte pas encore toutes les règles'); return; }
-  const hash = await sha256Hex(newPw);
-  await saveWithRetry('settings:adminpin_hash', hash, true);
-  currentAdminPasswordHash = hash;
-  document.getElementById('admin-new-pin').value = '';
-  showToast('Mot de passe d’administration changé ✓');
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('changeAdminPin') : undefined;
 }
 function generateRandomBackupCode(){
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for(let i = 0; i < 10; i++){
-    if(i === 5) code += '-';
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('generateRandomBackupCode') : undefined;
 }
 async function generateBackupCodes(){
-  const ok = confirm('Générer de nouveaux codes de secours annulera les anciens. Continuer ?');
-  if(!ok) return;
-  const codes = [];
-  for(let i = 0; i < 8; i++) codes.push(generateRandomBackupCode());
-  const hashedCodes = [];
-  for(const c of codes) hashedCodes.push({ hash: await sha256Hex(c), used: false });
-  await saveWithRetry('settings:admin_backup_codes', hashedCodes, true);
-  const displayEl = document.getElementById('backup-codes-display');
-  displayEl.style.display = 'block';
-  displayEl.innerHTML = '<div class="card" style="border-color:var(--gold);"><p style="margin:0 0 8px; font-size:12px; color:var(--coral);">⚠️ Notez-les maintenant, dans un endroit sûr — ils ne seront plus jamais réaffichés ainsi.</p>' +
-    codes.map(c => '<p style="margin:2px 0; font-family:monospace; font-size:14px; letter-spacing:.05em;">'+c+'</p>').join('') + '</div>';
-  document.getElementById('backup-codes-status').textContent = '8 codes générés — chacun utilisable une seule fois.';
-  showToast('Codes de secours générés ✓');
-  await logAdminAction('Codes de secours régénérés', '');
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('generateBackupCodes') : undefined;
 }
 async function loadBackupCodesStatus(){
-  const el = document.getElementById('backup-codes-status');
-  if(!el) return;
-  const codes = await safeGet('settings:admin_backup_codes', true);
-  if(!codes || codes.length === 0){ el.textContent = 'Aucun code de secours généré pour l’instant.'; return; }
-  const remaining = codes.filter(c => !c.used).length;
-  el.textContent = remaining + ' code(s) encore valide(s) sur ' + codes.length + '.';
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('loadBackupCodesStatus') : undefined;
 }
 async function verifyCurrentAdminSessionStillValid(){
-  if(!currentAdminPasswordHash) return true;
-  try{
-    if(isTechTeamMember){
-      const r = await window.storage.get('settings:techteammembers', true);
-      const members = r ? JSON.parse(r.value) : [];
-      const match = members.find(m => m.pinHash === currentAdminPasswordHash);
-      if(match && match.active !== false) return true;
-    } else if(currentCustomRoleDomains){
-      const r = await window.storage.get('settings:customroles', true);
-      const roles = r ? JSON.parse(r.value) : [];
-      const match = roles.find(role => role.pinHash === currentAdminPasswordHash);
-      if(match) return true;
-    } else if(isPayoutSpecialist){
-      const r = await window.storage.get('settings:payoutspecialists', true);
-      const specialists = r ? JSON.parse(r.value) : [];
-      const match = specialists.find(s => s.pinHash === currentAdminPasswordHash);
-      if(match && match.active) return true;
-    } else if(adminScope === 'all' && !isModerator){
-      const r = await window.storage.get('settings:adminpin_hash', true);
-      const storedHash = r ? JSON.parse(r.value) : null;
-      if(storedHash === currentAdminPasswordHash) return true;
-    } else if(isModerator){
-      const r = await window.storage.get('settings:moderators', true);
-      const moderators = r ? JSON.parse(r.value) : [];
-      const match = moderators.find(m => m.pinHash === currentAdminPasswordHash);
-      if(match && match.active !== false && (!match.expiresAt || new Date(match.expiresAt) > new Date())) return true;
-    } else {
-      const r = await window.storage.get('settings:regionaladmins', true);
-      const regionalAdmins = r ? JSON.parse(r.value) : [];
-      const match = regionalAdmins.find(a => a.pinHash === currentAdminPasswordHash);
-      if(match && match.active !== false) return true;
-    }
-  } catch(e){
-    // Lecture indisponible (réseau, latence...) — on ne révoque jamais sur un simple doute,
-    // on garde la session active plutôt que d'éjecter quelqu'un à tort.
-    return true;
-  }
-  adminScope = 'all';
-  isModerator = false;
-  isPayoutSpecialist = false;
-  currentAdminName = 'Propriétaire';
-  currentAdminPasswordHash = null;
-  isGenuineOwnerSession = false;
-  currentCustomRoleDomains = null;
-  isTechTeamMember = false;
-  document.body.classList.remove('techteam-mode');
-  currentTechTeamName = null;
-  showToast('Votre accès administrateur a été révoqué');
-  go('profile');
-  return false;
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('verifyCurrentAdminSessionStillValid') : undefined;
 }
 async function loadEducationOverview(){
   const el = document.getElementById('education-overview-card');
@@ -8187,26 +7877,8 @@ function updateRegionalAdminPasswordStrength(){
   el.textContent = r.text;
 }
 async function addRegionalAdmin(){
-  const name = document.getElementById('regional-admin-name').value.trim();
-  const pin = document.getElementById('regional-admin-pin').value;
-  const country = document.getElementById('regional-admin-country').value;
-  const domain = document.getElementById('regional-admin-domain').value;
-  if(!name){ showToast('Renseignez un nom'); return; }
-  const {strong} = checkPasswordStrength(pin);
-  if(!strong){ showToast('Le mot de passe ne respecte pas encore toutes les règles'); return; }
-  const pinHash = await sha256Hex(pin);
-  const superHash = await safeGet('settings:adminpin_hash', true);
-  if(pinHash === superHash){ showToast('Choisissez un mot de passe différent du vôtre'); return; }
-  const admins = (await safeGet('settings:regionaladmins', true)) || [];
-  if(admins.some(a => a.pinHash === pinHash)){ showToast('Ce mot de passe est déjà utilisé par un autre admin'); return; }
-  const mustChangePassword = document.getElementById('regional-admin-must-change').checked;
-  admins.push({name, pinHash, country, domain, mustChangePassword});
-  await saveWithRetry('settings:regionaladmins', admins, true);
-  document.getElementById('regional-admin-name').value = '';
-  document.getElementById('regional-admin-pin').value = '';
-  document.getElementById('regional-admin-must-change').checked = false;
-  showToast('Admin régional ajouté ✓');
-  await loadRegionalAdminsList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('addRegionalAdmin') : undefined;
 }
 async function loadRegionalAdminsList(){
   const el = document.getElementById('regional-admins-list');
@@ -8269,23 +7941,8 @@ async function reassignModeratorDomain(index){
   await loadModeratorsList();
 }
 async function transferRegionalAdmin(index){
-  const admins = (await safeGet('settings:regionaladmins', true)) || [];
-  const target = admins[index];
-  if(!target) return;
-  const newName = prompt('Nom complet du nouveau DG pour ' + target.country + ' (' + target.name + ' perdra immédiatement son accès) :');
-  if(!newName || !newName.trim()) return;
-  const tempPin = prompt('Mot de passe temporaire pour ' + newName.trim() + ' (il/elle devra le changer à sa première connexion) :');
-  if(!tempPin || tempPin.length < 4){ showToast('Mot de passe temporaire trop court'); return; }
-  const ok = confirm('Transférer les droits DG — ' + target.country + ' de « ' + target.name + ' » vers « ' + newName.trim() + ' » ?\n\n' + target.name + ' perdra son accès immédiatement. ' + newName.trim() + ' héritera exactement du même pays et du même domaine, avec un mot de passe à changer à sa première connexion.');
-  if(!ok) return;
-  const pinHash = await sha256Hex(tempPin);
-  const superHash = await safeGet('settings:adminpin_hash', true);
-  if(pinHash === superHash){ showToast('Choisissez un mot de passe différent de celui du propriétaire'); return; }
-  admins[index] = { name: newName.trim(), pinHash, country: target.country, domain: target.domain, mustChangePassword: true, active: true };
-  await saveWithRetry('settings:regionaladmins', admins, true);
-  await logAdminAction('Droits DG transférés', target.country + ' : ' + target.name + ' → ' + newName.trim());
-  showToast('Droits transférés à ' + newName.trim() + ' ✓');
-  await loadRegionalAdminsList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('transferRegionalAdmin') : undefined;
 }
 async function logPrivilegeException(exceptionType, targetId, category, justification){
   if(!justification || justification.trim().length < 30){ showToast('Le motif doit contenir au moins 30 caractères'); return false; }
@@ -8378,12 +8035,8 @@ async function exportExceptionsRegistryReport(){
   await logAdminAction('Registre des exceptions exporté', entries.length + ' entrée(s)');
 }
 async function confirmWithPinReentry(){
-  const pin = prompt('Pour confirmer cette action critique, ressaisissez votre mot de passe :');
-  if(pin === null) return false;
-  const pinHash = await sha256Hex(pin);
-  const storedHash = await safeGet('settings:adminpin_hash', true);
-  if(pinHash !== storedHash){ showToast('Mot de passe incorrect — action annulée'); return false; }
-  return true;
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('confirmWithPinReentry') : undefined;
 }
 async function renderServiceHealthDashboard(){
   const el = document.getElementById('service-health-dashboard');
@@ -8468,23 +8121,8 @@ function updatePayoutSpecialistPasswordStrength(){
   el.textContent = r.text;
 }
 async function addPayoutSpecialist(){
-  const name = document.getElementById('payout-specialist-name-input').value.trim();
-  const pin = document.getElementById('payout-specialist-pin-input').value;
-  if(!name){ showToast('Renseignez un nom'); return; }
-  const {strong} = checkPasswordStrength(pin);
-  if(!strong){ showToast('Le mot de passe ne respecte pas encore toutes les règles'); return; }
-  const pinHash = await sha256Hex(pin);
-  const superHash = await safeGet('settings:adminpin_hash', true);
-  if(pinHash === superHash){ showToast('Choisissez un mot de passe différent du vôtre'); return; }
-  const specialists = (await safeGet('settings:payoutspecialists', true)) || [];
-  if(specialists.some(s => s.pinHash === pinHash)){ showToast('Ce mot de passe est déjà utilisé'); return; }
-  specialists.push({name, pinHash, active: true, addedAt: new Date().toISOString()});
-  await saveWithRetry('settings:payoutspecialists', specialists, true);
-  document.getElementById('payout-specialist-name-input').value = '';
-  document.getElementById('payout-specialist-pin-input').value = '';
-  showToast('Ajouté à l’équipe reversements ✓');
-  await logAdminAction('Membre ajouté — équipe reversements', name);
-  await loadPayoutSpecialistsList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('addPayoutSpecialist') : undefined;
 }
 async function togglePayoutSpecialistActive(index){
   const specialists = (await safeGet('settings:payoutspecialists', true)) || [];
@@ -8496,17 +8134,8 @@ async function togglePayoutSpecialistActive(index){
   await loadPayoutSpecialistsList();
 }
 async function resetPayoutSpecialistPassword(index){
-  const specialists = (await safeGet('settings:payoutspecialists', true)) || [];
-  if(!specialists[index]) return;
-  const newPw = prompt('Nouveau mot de passe pour ' + specialists[index].name + ' (8+ caractères, majuscule, minuscule, chiffre, caractère spécial) :');
-  if(newPw === null) return;
-  const {strong} = checkPasswordStrength(newPw);
-  if(!strong){ showToast('Ce mot de passe ne respecte pas encore toutes les règles'); return; }
-  specialists[index].pinHash = await sha256Hex(newPw);
-  await saveWithRetry('settings:payoutspecialists', specialists, true);
-  showToast('Mot de passe réinitialisé ✓');
-  await logAdminAction('Mot de passe réinitialisé — équipe reversements', specialists[index].name);
-  await loadPayoutSpecialistsList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('resetPayoutSpecialistPassword') : undefined;
 }
 async function removePayoutSpecialist(index){
   const specialists = (await safeGet('settings:payoutspecialists', true)) || [];
@@ -8546,31 +8175,8 @@ function updateModeratorPasswordStrength(){
   el.textContent = r.text;
 }
 async function addModerator(){
-  const name = document.getElementById('moderator-name').value.trim();
-  const pin = document.getElementById('moderator-pin').value;
-  if(!name){ showToast('Renseignez un nom'); return; }
-  const {strong} = checkPasswordStrength(pin);
-  if(!strong){ showToast('Le mot de passe ne respecte pas encore toutes les règles'); return; }
-  const pinHash = await sha256Hex(pin);
-  const superHash = await safeGet('settings:adminpin_hash', true);
-  if(pinHash === superHash){ showToast('Choisissez un mot de passe différent du vôtre'); return; }
-  const regionalAdmins = (await safeGet('settings:regionaladmins', true)) || [];
-  if(regionalAdmins.some(a => a.pinHash === pinHash)){ showToast('Ce mot de passe est déjà utilisé par un admin régional'); return; }
-  const moderators = (await safeGet('settings:moderators', true)) || [];
-  if(moderators.some(m => m.pinHash === pinHash)){ showToast('Ce mot de passe est déjà utilisé par un autre modérateur'); return; }
-  const country = adminScope !== 'all' ? adminScope : null;
-  const restrictedDomain = document.getElementById('moderator-domain-select').value || 'moderation';
-  const mustChangePassword = document.getElementById('moderator-must-change').checked;
-  const expiresInput = document.getElementById('moderator-expires-input').value;
-  const expiresAt = expiresInput ? new Date(expiresInput + 'T23:59:59').toISOString() : null;
-  moderators.push({name, pinHash, country, restrictedDomain, expiresAt, addedBy: currentAdminName, mustChangePassword});
-  await saveWithRetry('settings:moderators', moderators, true);
-  document.getElementById('moderator-name').value = '';
-  document.getElementById('moderator-pin').value = '';
-  document.getElementById('moderator-must-change').checked = false;
-  showToast('Modérateur ajouté ✓');
-  await logAdminAction('Ajout d’un modérateur', name + (country ? ' (' + country + ')' : ' (global)'));
-  await loadModeratorsList();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('addModerator') : undefined;
 }
 async function loadModeratorsList(){
   const el = document.getElementById('moderators-list');

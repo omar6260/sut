@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const srcDir = path.join(root, 'src', 'legacy');
 const distDir = path.join(root, 'dist');
 const multi = process.argv.includes('--multi');
-const VENDOR = ['firebase-app-compat.js', 'firebase-auth-compat.js', 'firebase-firestore-compat.js', 'firebase-storage-compat.js'];
+const VENDOR = ['firebase-app-compat.js', 'firebase-auth-compat.js', 'firebase-firestore-compat.js', 'firebase-storage-compat.js', 'firebase-functions-compat.js'];
 
 export async function assemble({ mode = 'single' } = {}) {
   const template = await readFile(path.join(srcDir, 'index.template.html'), 'utf8');
@@ -20,7 +20,7 @@ export async function assemble({ mode = 'single' } = {}) {
   const styles = '<style>\n' + css + '</style>';
   // Scripts plateforme (phase 04+) : SDK Firebase (bundles compat servis localement) puis src/platform, AVANT le legacy.
   const platformDir = path.join(root, 'src', 'platform');
-  const platformFiles = ['firebase-config.local.js', 'storage-keys.js', 'storage-adapter.js', 'boot.js'].filter((f) => existsSync(path.join(platformDir, f)));
+  const platformFiles = ['firebase-config.local.js', 'storage-keys.js', 'storage-adapter.js', 'boot.js', 'auth.js'].filter((f) => existsSync(path.join(platformDir, f)));
   if (existsSync(path.join(platformDir, 'boot.js')) && !existsSync(path.join(platformDir, 'firebase-config.local.js'))) {
     throw new Error('src/platform/firebase-config.local.js manquant : copier firebase-config.example.js et le renseigner (npx firebase apps:sdkconfig WEB)');
   }
@@ -28,7 +28,10 @@ export async function assemble({ mode = 'single' } = {}) {
   const platform = platformFiles.map((f) => `<script src="platform/${f}"></script>`).join('\n');
   let scripts;
   if (mode === 'multi') {
-    scripts = [vendor, platform, ...jsFiles.map((f) => `<script src="js/${f}"></script>`)].filter(Boolean).join('\n');
+    // legacy-overrides.js s'insère avant le dernier script legacy (20-init.js) : après les déclarations, avant initIdentity().
+    const tags = jsFiles.map((f) => `<script src="js/${f}"></script>`);
+    if (existsSync(path.join(platformDir, 'legacy-overrides.js'))) tags.splice(tags.length - 1, 0, '<script src="platform/legacy-overrides.js"></script>');
+    scripts = [vendor, platform, ...tags].filter(Boolean).join('\n');
   } else {
     const parts = [];
     for (const f of jsFiles) parts.push(await readFile(path.join(srcDir, 'js', f), 'utf8'));

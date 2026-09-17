@@ -748,119 +748,49 @@ function base32Decode(str){
   return new Uint8Array(bytes);
 }
 async function generateTotpSecret(){
-  const randomBytes = crypto.getRandomValues(new Uint8Array(20));
-  return base32Encode(randomBytes);
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('generateTotpSecret') : undefined;
 }
 async function computeTotpCode(secretBase32, timeStepOverride){
-  const key = base32Decode(secretBase32);
-  const timeStep = timeStepOverride !== undefined ? timeStepOverride : Math.floor(Date.now() / 1000 / 30);
-  const counterBuf = new ArrayBuffer(8);
-  const counterView = new DataView(counterBuf);
-  counterView.setUint32(4, timeStep, false);
-  const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, counterBuf);
-  const hmac = new Uint8Array(signature);
-  const offset = hmac[hmac.length - 1] & 0x0f;
-  const binCode = ((hmac[offset] & 0x7f) << 24) | ((hmac[offset+1] & 0xff) << 16) | ((hmac[offset+2] & 0xff) << 8) | (hmac[offset+3] & 0xff);
-  return String(binCode % 1000000).padStart(6, '0');
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('computeTotpCode') : undefined;
 }
 async function start2FASetup(){
-  const secret = await generateTotpSecret();
-  pending2FASecret = secret;
-  const backupCode = Math.random().toString(36).slice(2, 10).toUpperCase();
-  pending2FABackupCode = backupCode;
-  await render2FACard();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('start2FASetup') : undefined;
 }
 async function confirm2FASetup(){
-  const entered = document.getElementById('totp-confirm-input').value.trim();
-  if(!pending2FASecret){ return; }
-  const valid = await verifyTotpCode(pending2FASecret, entered);
-  if(!valid){ showToast('Code incorrect — vérifiez votre application d’authentification'); return; }
-  const me = (await safeGet('user:' + currentUser, true)) || {username: currentUser, createdAt: new Date().toISOString()};
-  me.totpSecret = pending2FASecret;
-  me.totpBackupCode = pending2FABackupCode;
-  await saveWithRetry('user:' + currentUser, me, true);
-  pending2FASecret = null;
-  pending2FABackupCode = null;
-  showToast('Double authentification activée ✓');
-  await render2FACard();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('confirm2FASetup') : undefined;
 }
 async function disable2FA(){
-  if(!confirm('Désactiver la double authentification ? Votre compte sera protégé uniquement par le nom d’utilisateur et le code PIN si vous en avez un.')) return;
-  const me = (await safeGet('user:' + currentUser, true)) || {username: currentUser, createdAt: new Date().toISOString()};
-  me.totpSecret = null;
-  me.totpBackupCode = null;
-  await saveWithRetry('user:' + currentUser, me, true);
-  showToast('Double authentification désactivée');
-  await render2FACard();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('disable2FA') : undefined;
 }
 let pending2FASecret = null;
 let pending2FABackupCode = null;
 async function render2FACard(){
-  const el = document.getElementById('two-factor-auth-card');
-  if(!el || !currentUser) return;
-  const me = await safeGet('user:' + currentUser, true);
-  if(me && me.totpSecret){
-    el.innerHTML = '<p style="margin:0 0 10px; font-size:12.5px; color:var(--lagoon);">✓ Double authentification activée — un code de votre application d’authentification sera demandé à chaque connexion.</p>' +
-      '<button class="btn btn-outline btn-sm" style="border-color:var(--coral); color:var(--coral);" onclick="disable2FA()">Désactiver</button>';
-  } else if(pending2FASecret){
-    el.innerHTML = '<p style="font-size:11.5px; color:rgba(245,239,227,0.5); margin:0 0 10px;">Entrez cette clé dans une application comme Google Authenticator, puis saisissez le code affiché pour confirmer.</p>' +
-      '<div class="card" style="margin-bottom:10px;"><p style="margin:0; font-size:13px; font-family:monospace; word-break:break-all;">'+pending2FASecret+'</p></div>' +
-      '<p style="font-size:11px; color:var(--gold); margin:0 0 10px;">🔑 Code de secours (à noter, en cas de perte de l’application) : <strong>'+pending2FABackupCode+'</strong></p>' +
-      '<label style="margin-top:0;">Code à 6 chiffres</label>' +
-      '<input type="text" id="totp-confirm-input" placeholder="000000" maxlength="6">' +
-      '<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="confirm2FASetup()">Confirmer et activer</button>';
-  } else {
-    el.innerHTML = '<p style="font-size:11.5px; color:rgba(245,239,227,0.5); margin:0 0 10px;">Ajoutez un vrai code temporaire à 6 chiffres, généré par une application d’authentification — distinct de votre code PIN.</p>' +
-      '<button class="btn btn-primary btn-sm" onclick="start2FASetup()">Activer la double authentification</button>';
-  }
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('render2FACard') : undefined;
 }
 async function verifyTotpCode(secretBase32, enteredCode){
-  const currentStep = Math.floor(Date.now() / 1000 / 30);
-  for(const offset of [-1, 0, 1]){
-    const code = await computeTotpCode(secretBase32, currentStep + offset);
-    if(code === enteredCode) return true;
-  }
-  return false;
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('verifyTotpCode') : undefined;
 }
 async function isHighVisibilityAccount(u){
   return !!(u && (u.identityVerified || u.recommendedSeller || (u.isTrainer && u.trainerVerified)));
 }
 async function renderSecurityPinCard(){
-  const el = document.getElementById('security-pin-card');
-  if(!el || !currentUser) return;
-  const me = await safeGet('user:' + currentUser, true);
-  const eligible = await isHighVisibilityAccount(me);
-  if(!eligible){
-    el.innerHTML = '<p style="font-size:12px; color:rgba(245,239,227,0.5); margin:0;">Réservé aux comptes à forte visibilité (identité vérifiée, vendeur recommandé, ou formateur vérifié).</p>';
-    return;
-  }
-  if(me.securityPin){
-    el.innerHTML = '<p style="font-size:12.5px; color:var(--lagoon); margin:0 0 10px;">✓ Un code de sécurité protège actuellement votre compte à la connexion.</p>' +
-      '<button class="btn btn-outline btn-sm" onclick="removeSecurityPin()">Retirer le code de sécurité</button>';
-  } else {
-    el.innerHTML = '<p style="font-size:12px; color:rgba(245,239,227,0.6); margin:0 0 10px;">Ajoutez un code demandé à chaque connexion sur un nouvel appareil, en plus de votre nom d’utilisateur.</p>' +
-      '<input type="password" id="new-security-pin" placeholder="Code à 4-6 chiffres" inputmode="numeric" maxlength="6">' +
-      '<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="setSecurityPin()">Activer le code de sécurité</button>';
-  }
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('renderSecurityPinCard') : undefined;
 }
 async function setSecurityPin(){
-  const pin = document.getElementById('new-security-pin').value.trim();
-  if(!/^[0-9]{4,6}$/.test(pin)){ showToast('Le code doit contenir 4 à 6 chiffres'); return; }
-  const me = await safeGet('user:' + currentUser, true);
-  if(!me) return;
-  me.securityPin = pin;
-  await saveWithRetry('user:' + currentUser, me, true);
-  showToast('Code de sécurité activé ✓');
-  await renderSecurityPinCard();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('setSecurityPin') : undefined;
 }
 async function removeSecurityPin(){
-  const me = await safeGet('user:' + currentUser, true);
-  if(!me) return;
-  me.securityPin = null;
-  await saveWithRetry('user:' + currentUser, me, true);
-  showToast('Code de sécurité retiré');
-  await renderSecurityPinCard();
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('removeSecurityPin') : undefined;
 }
 async function submitKycVerification(){
   const fullName = document.getElementById('kyc-full-name').value.trim();

@@ -234,20 +234,8 @@ async function logInAsExistingUser(existing, name, country){
     }
     return false;
   }
-  if(existing.securityPin){
-    pendingPinLogin = { existing, name, country };
-    const input = document.getElementById('pin-login-input');
-    if(input) input.value = '';
-    go('pin-verify');
-    return false;
-  }
-  if(existing.totpSecret){
-    pending2FALogin = { existing, name, country };
-    const input = document.getElementById('totp-login-input');
-    if(input) input.value = '';
-    go('totp-verify');
-    return false;
-  }
+  /* phase 05 : securityPin n'est plus stocké côté client — PIN/2FA vérifiés par le serveur (legacy-overrides.js) */
+  /* phase 05 : totpSecret n'est plus stocké côté client — PIN/2FA vérifiés par le serveur (legacy-overrides.js) */
   return await completeLoginAsUser(existing, name, country);
 }
 async function completeLoginAsUser(existing, name, country){
@@ -272,36 +260,13 @@ async function completeLoginAsUser(existing, name, country){
   return true;
 }
 async function submitPinVerification(){
-  const entered = document.getElementById('pin-login-input').value.trim();
-  if(!pendingPinLogin) return;
-  if(entered !== pendingPinLogin.existing.securityPin){
-    showToast('Code incorrect');
-    return;
-  }
-  const { existing, name, country } = pendingPinLogin;
-  pendingPinLogin = null;
-  if(existing.totpSecret){
-    pending2FALogin = { existing, name, country };
-    const input = document.getElementById('totp-login-input');
-    if(input) input.value = '';
-    go('totp-verify');
-    return;
-  }
-  await completeLoginAsUser(existing, name, country);
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('submitPinVerification') : undefined;
 }
 let pending2FALogin = null;
 async function submit2FALoginVerification(){
-  const entered = document.getElementById('totp-login-input').value.trim();
-  if(!pending2FALogin) return;
-  const { existing, name, country } = pending2FALogin;
-  const validTotp = await verifyTotpCode(existing.totpSecret, entered.replace(/\s/g, ''));
-  const validBackup = existing.totpBackupCode && entered.toUpperCase() === existing.totpBackupCode;
-  if(!validTotp && !validBackup){
-    showToast('Code incorrect');
-    return;
-  }
-  pending2FALogin = null;
-  await completeLoginAsUser(existing, name, country);
+  /* phase 05 : logique déplacée côté serveur (Cloud Functions + custom claims) — implémentation dans src/platform/legacy-overrides.js */
+  return window.SuktumPlatform && window.SuktumPlatform.legacyStub ? window.SuktumPlatform.legacyStub('submit2FALoginVerification') : undefined;
 }
 async function checkDeviceHasBannedAccount(){
   const deviceId = await getOrCreateDeviceId();

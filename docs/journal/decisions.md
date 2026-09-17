@@ -82,3 +82,9 @@ Raison : reproduit exactement le comportement actuel (y compris ses défauts) ; 
 Raison : les tests coupent tout réseau externe ; pas de dépendance à `gstatic` au premier rendu ; épinglage exact.
 
 **Décisions produit D4–D9 : en attente, valeurs par défaut = comportement du prototype** (renommage conservé, opt-out inopérant conservé, wishlist PRIVE, contenu de cours après inscription, médias > 900 Ko refusés jusqu'à la phase 07).
+
+## 2026-09-17 — Décisions produit D1 et D3 (Oumar, pour Gorgui)
+
+**D1 — Connexion sur un nouvel appareil : conforme au cahier des charges (§3.1, §3.12).** Inscription par nom d'utilisateur sans mot de passe, session rattachée à l'appareil (compte Firebase anonyme, jeton serveur) ; sur un nouveau téléphone, l'utilisateur retrouve son compte avec « Continuer avec Google » (jeton vérifié côté serveur par Firebase Auth), en un seul geste. Le PIN de sécurité et le 2FA existants restent des protections supplémentaires, vérifiées côté serveur. Un nom d'utilisateur existant saisi sur un autre appareil n'ouvre plus la session : il propose la récupération Google.
+
+**D3 — Mineurs : tranche d'âge auto-déclarée (13–17 / 18+), jamais de date de naissance.** Comme le prototype (`isMinor`, `ageBracket`). Le serveur pose le claim `familyMode` pour 13–17 et refuse toute autre valeur.

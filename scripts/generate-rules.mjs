@@ -16,8 +16,8 @@ for (const [p, c] of rows) (byClass[c] = byClass[c] || []).push(`kv_${p}`);
 
 // Sous-clés de kv_settings en lecture seule dès la phase 04 (secrets, rôles avec hash) — groupes « clés API » et « rôles et accès ».
 const SETTINGS_READ_ONLY = ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider',
-  'admin_backup_codes', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers'];
-// Transitoire phase 04 : `adminpin_hash` reste inscriptible pour que le back-office soit testable (remplacé par Auth + claims en 05/06).
+  'admin_backup_codes', 'adminpin_hash', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers'];
+// Phase 05 : `adminpin_hash` n'est plus ni lu ni écrit par le client (rôles en custom claims).
 
 const list = (arr) => '[' + arr.map((x) => `'${x}'`).join(', ') + ']';
 const priv = byClass.PRIVE || [];
@@ -41,12 +41,13 @@ service cloud.firestore {
 
     // Réglages partagés : lecture par tous les authentifiés ; secrets et rôles en lecture seule côté client.
     match /kv_settings/{id} {
-      allow read: if authed();
+      allow read: if authed() && !(id in ${list([...SETTINGS_READ_ONLY, 'adminpin_hash'])});
       allow create: if authed() && !(id in ${list(SETTINGS_READ_ONLY)}) && request.resource.data.owner == request.auth.uid;
       allow update: if authed() && !(id in ${list(SETTINGS_READ_ONLY)}) && ownerUnchanged();
       allow delete: if authed() && !(id in ${list(SETTINGS_READ_ONLY)});
     }
 
+    // usernames/, auth_secrets/, auth_attempts/ : serveur uniquement (aucune règle → refusé).
     // Collections kv_<prefixe> (shared = true dans le legacy).
     match /{collection}/{id} {
       allow read: if authed() && isKv(collection) && (!isPrivate(collection) || isOwner());

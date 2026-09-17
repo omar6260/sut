@@ -52,11 +52,21 @@ test('kv_settings : réglages plateforme inscriptibles, secrets et rôles en lec
   await assertFails(A().doc('kv_settings/geminiApiKey').set({ data: 'AIza…', owner: 'uidA' }));
   await assertFails(A().doc('kv_settings/moderators').set({ data: [], owner: 'uidA' }));
   await env.withSecurityRulesDisabled(async (ctx) => ctx.firestore().doc('kv_settings/moderators').set({ data: [{ name: 'M' }], owner: 'admin' }));
-  await assertSucceeds(A().doc('kv_settings/moderators').get());
+  await assertFails(A().doc('kv_settings/moderators').get()); // phase 05 : listes de rôles (pinHash) illisibles
   await assertFails(A().doc('kv_settings/moderators').update({ data: [] }));
 });
 
 test('collections hors kv_ : refusées', async () => {
   await assertFails(A().doc('autre/x').set({ data: 1, owner: 'uidA' }));
   await assertFails(A().doc('users/uidA').set({ x: 1 }));
+});
+
+test('phase 05 : usernames/, auth_secrets/ et claims inaccessibles au client ; secrets settings illisibles', async () => {
+  await assertFails(A().doc('usernames/awa').set({ uid: 'uidA' }));
+  await assertFails(A().doc('usernames/awa').get());
+  await assertFails(A().doc('auth_secrets/uidA').get());
+  await assertFails(A().doc('auth_secrets/uidA').set({ pinHash: 'x' }));
+  await env.withSecurityRulesDisabled(async (ctx) => ctx.firestore().doc('kv_settings/adminpin_hash').set({ data: 'hash', owner: 'legacy' }));
+  await assertFails(A().doc('kv_settings/adminpin_hash').get());
+  await assertFails(A().doc('kv_settings/geminiApiKey').get());
 });
