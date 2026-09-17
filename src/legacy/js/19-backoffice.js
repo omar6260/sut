@@ -3190,20 +3190,8 @@ async function toggleAutoValidateTrainers(value){
   await loadAutoValidateTrainersToggle();
 }
 async function maybeAutoValidateTrainer(requestId){
-  if(!(await isAutoValidateTrainersEnabled())) return;
-  const req = await safeGet('trainerrequest:' + requestId, true);
-  if(!req) return;
-  try{
-    const prompt = "Tu aides à examiner une candidature de formateur pour une plateforme d'éducation en ligne. Voici la candidature :\n\n" +
-      "MATIÈRE : " + req.subject + "\nPRÉSENTATION : " + req.bio +
-      "\n\nCette candidature semble-t-elle sérieuse, cohérente et rédigée par quelqu'un ayant une vraie compétence dans cette matière (pas un texte vide, absurde, ou hors-sujet) ? Réponds UNIQUEMENT en JSON strict : {\"decision\": \"approve\" ou \"hold\", \"reasoning\": \"<1 phrase en français>\"}. En cas de doute, réponds \"hold\".";
-    const text = await callAIProvider(prompt, 150, await getGovernanceAIProvider());
-    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
-    if(parsed.decision === 'approve'){
-      await approveTrainerRequest(requestId);
-      await logAdminAction('Candidature formateur validée automatiquement par l’IA', '@' + req.username + ' — ' + parsed.reasoning);
-    }
-  }catch(e){ /* en cas d'erreur IA, la candidature reste simplement en attente pour un humain */ }
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 /* ---------- MODE DE GESTION AUTONOME — INTERRUPTEUR MAÎTRE ---------- */
 async function enableAutonomousMode(){
@@ -7507,15 +7495,8 @@ async function sendWorkGroupChatMessage(){
   await renderWorkGroupChat();
 }
 async function saveCertificateConditions(){
-  if(!currentManagedCourseId) return;
-  const c = await safeGet('course:' + currentManagedCourseId, true);
-  if(!c) return;
-  const avgRaw = document.getElementById('cert-min-average').value;
-  const attRaw = document.getElementById('cert-min-attendance').value;
-  c.certMinAverage = avgRaw === '' ? null : Math.max(0, Math.min(20, parseFloat(avgRaw)));
-  c.certMinAttendance = attRaw === '' ? null : Math.max(0, Math.min(100, parseInt(attRaw, 10)));
-  await saveWithRetry('course:' + currentManagedCourseId, c, true);
-  showToast('Conditions enregistrées ✓');
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function openCourseEngagementJournal(courseId){
   if(!courseId) return;

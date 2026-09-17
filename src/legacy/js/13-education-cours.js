@@ -285,24 +285,8 @@ async function renderEducationCourses(){
 }
 let currentCourseDetailId = null;
 async function leaveCourseAsStudent(courseId){
-  const enrollment = await fetchEnrollment(courseId, currentUser);
-  if(!enrollment || enrollment.status !== 'approved') return;
-  const c = await safeGet('course:' + courseId, true);
-  if(!confirm('Quitter « '+(c ? c.title : 'ce cours')+' » ? Vous perdrez l’accès aux leçons et devrez vous réinscrire pour y revenir.')) return;
-  const reason = prompt('Un mot sur votre départ, pour aider le formateur à s’améliorer ? (facultatif, laissez vide pour passer)');
-  const wasPaid = !enrollment.stateFunded && !enrollment.trialEnrollment;
-  await window.storage.delete('enrollment:' + courseId + '__' + currentUser, true).catch(() => {});
-  await window.storage.delete('coursegroupchatnotifypref:' + currentUser + '__' + courseId, false).catch(() => {});
-  await window.storage.delete('coursechatnotifypref:' + currentUser + '__' + courseId, false).catch(() => {});
-  const leaveId = courseId + '__' + currentUser + '__' + Date.now();
-  await saveWithRetry('courseleave:' + leaveId, {
-    id: leaveId, courseId, studentUsername: currentUser, courseTitle: c ? c.title : courseId,
-    trainerUsername: c ? c.trainerUsername : null, wasPaid, pricePaid: wasPaid ? enrollment.price : null,
-    reason: (reason && reason.trim()) ? reason.trim() : null, leftAt: new Date().toISOString()
-  }, true);
-  showToast('Vous avez quitté ce cours');
-  if(c && c.trainerUsername) await createNotification(c.trainerUsername, 'student_left_course', currentUser, courseId, c.title);
-  go('education-hub');
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchEnrollment(courseId, username){
   return await safeGet('enrollment:' + courseId + '__' + username, true);
@@ -784,32 +768,8 @@ async function suggestGradeWithAI(studentUsername){
   }
 }
 async function submitGrade(storageKey, studentUsername){
-  const scoreInput = document.getElementById('grade-score-' + studentUsername);
-  const feedbackInput = document.getElementById('grade-feedback-' + studentUsername);
-  const score = parseFloat(scoreInput.value);
-  if(isNaN(score) || score < 0 || score > 20){ showToast('Entrez une note valide entre 0 et 20'); return; }
-  const s = await safeGet(storageKey, true);
-  if(!s) return;
-  if(s.status === 'graded' && s.score !== score){
-    const justification = prompt('Cette copie a déjà une note validée ('+s.score+'/20). Les notes validées sont immuables — pour la corriger, indiquez un motif précis qui sera conservé dans l’historique :');
-    if(justification === null || !justification.trim()){ showToast('Correction annulée — la note validée reste inchangée'); return; }
-    if(!s.gradeCorrectionHistory) s.gradeCorrectionHistory = [];
-    s.gradeCorrectionHistory.push({ previousScore: s.score, newScore: score, justification: justification.trim(), correctedBy: currentUser, correctedAt: new Date().toISOString() });
-  }
-  const aiSuggestion = lastAiGradeSuggestions[studentUsername];
-  if(aiSuggestion !== undefined && Math.abs(aiSuggestion - score) >= 8){
-    const ok = confirm('⚠️ Votre note ('+score+'/20) s’écarte beaucoup de la suggestion IA ('+aiSuggestion+'/20). Confirmer quand même cette note ?');
-    if(!ok) return;
-  }
-  s.score = score;
-  s.feedback = feedbackInput.value.trim();
-  s.status = 'graded';
-  s.gradedAt = new Date().toISOString();
-  await saveWithRetry(storageKey, s, true);
-  showToast('Note enregistrée ✓');
-  await createNotification(s.studentUsername, 'exercise_graded', currentUser, s.exerciseId, String(score));
-  await renderGradeExerciseSubmissions();
-  await renderManageCourseExercises();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 
 /* ---------- EXERCICES — VUE ÉTUDIANT ---------- */
@@ -1221,19 +1181,8 @@ async function populateBadgeStudentSelect(){
   sel.innerHTML = students.length === 0 ? '<option value="">Aucun élève inscrit</option>' : students.map(u => '<option value="'+escapeHtml(u)+'">@'+escapeHtml(u)+'</option>').join('');
 }
 async function awardStudentBadge(){
-  const studentUsername = document.getElementById('new-badge-student').value;
-  const badgeName = document.getElementById('new-badge-type').value;
-  const message = document.getElementById('new-badge-message').value.trim();
-  if(!studentUsername || !badgeName){ showToast('Choisissez un élève et un badge'); return; }
-  const ts = Date.now();
-  await saveWithRetry('badge:' + currentManagedCourseId + '__' + studentUsername + '__' + ts, {
-    courseId: currentManagedCourseId, trainerUsername: currentUser, studentUsername, badgeName, message, createdAt: new Date().toISOString()
-  }, true);
-  document.getElementById('new-badge-message').value = '';
-  showToast('Badge décerné ✓');
-  await createNotification(studentUsername, 'badge_awarded', currentUser, null, badgeName);
-  await logAdminAction('Badge décerné', '@'+currentUser+' → @'+studentUsername+' : '+badgeName);
-  await renderManageCourseBadges();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchStudentBadges(courseId, studentUsername){
   const keys = await safeList('badge:' + courseId + '__' + studentUsername + '__', true);
@@ -1320,17 +1269,8 @@ async function suggestFullExamAnswer(examId, student, questionIndex){
   }
 }
 async function submitFullExamGrade(examId, student){
-  const score = parseFloat(document.getElementById('examfinal-' + examId + '-' + student).value);
-  if(isNaN(score) || score < 0 || score > 20){ showToast('Entrez une note valide entre 0 et 20'); return; }
-  const sub = await safeGet('fullexamsubmission:' + examId + '__' + student, true);
-  if(!sub) return;
-  sub.status = 'graded';
-  sub.totalScore = score;
-  sub.gradedAt = new Date().toISOString();
-  await saveWithRetry('fullexamsubmission:' + examId + '__' + student, sub, true);
-  showToast('Note enregistrée ✓');
-  await createNotification(student, 'exam_graded', currentUser, examId, String(score));
-  await openFullExamSubmissions(examId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 let examBuilderQuestions = [];
 function toggleExamQuestionTypeFields(){
@@ -1367,20 +1307,8 @@ function renderExamBuilderQuestionsList(){
   ).join('');
 }
 async function publishFullExam(){
-  const title = document.getElementById('new-exam-title-full').value.trim();
-  const desc = document.getElementById('new-exam-desc-full').value.trim();
-  if(!title){ showToast('Donnez un titre à l’examen'); return; }
-  if(examBuilderQuestions.length === 0){ showToast('Ajoutez au moins une question'); return; }
-  const id = 'fullexam_' + Date.now();
-  await saveWithRetry('fullexam:' + currentManagedCourseId + '__' + id, {
-    id, courseId: currentManagedCourseId, title, description: desc, questions: examBuilderQuestions, createdAt: new Date().toISOString()
-  }, true);
-  document.getElementById('new-exam-title-full').value = '';
-  document.getElementById('new-exam-desc-full').value = '';
-  examBuilderQuestions = [];
-  renderExamBuilderQuestionsList();
-  showToast('Examen publié ✓');
-  await renderManageCourseFullExams();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function renderFullExamsListForStudent(fullExams){
   const parts = [];
@@ -1420,27 +1348,8 @@ async function openTakeFullExam(examId){
   ).join('');
 }
 async function submitFullExam(){
-  const keys = await safeList('fullexam:', true);
-  let exam = null;
-  for(const k of keys){ const e = await safeGet(k, true); if(e && e.id === currentTakeExamId){ exam = e; break; } }
-  if(!exam) return;
-  const answers = exam.questions.map((q, i) => {
-    if(q.type === 'qcm'){
-      const checked = document.querySelector('input[name="exam-answer-'+i+'"]:checked');
-      return { type: 'qcm', selectedIndex: checked ? parseInt(checked.value, 10) : null };
-    }
-    return { type: 'open', text: (document.getElementById('exam-answer-' + i).value || '').trim() };
-  });
-  if(answers.some(a => (a.type === 'qcm' && a.selectedIndex === null) || (a.type === 'open' && !a.text))){
-    showToast('Répondez à toutes les questions avant d’envoyer');
-    return;
-  }
-  await saveWithRetry('fullexamsubmission:' + currentTakeExamId + '__' + currentUser, {
-    examId: currentTakeExamId, studentUsername: currentUser, answers, status: 'submitted', totalScore: null, createdAt: new Date().toISOString()
-  }, true);
-  showToast('Copie envoyée ✓');
-  setExamLockMode(false);
-  await openCourseDetail(exam.courseId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchFullExams(courseId){
   const keys = await safeList('fullexam:' + courseId + '__', true);
@@ -1462,22 +1371,8 @@ async function renderManageCourseFullExams(){
 }
 /* ---------- QCM / QUIZ AUTO-CORRIGÉ ---------- */
 async function createCourseQuiz(){
-  const title = document.getElementById('new-quiz-title').value.trim();
-  const question = document.getElementById('new-quiz-question').value.trim();
-  const options = [0,1,2,3].map(i => document.getElementById('new-quiz-option-'+i).value.trim()).filter(Boolean);
-  const correctIndexRaw = parseInt(document.getElementById('new-quiz-correct').value, 10);
-  if(!title || !question || options.length < 2){ showToast('Renseignez le titre, la question, et au moins 2 options'); return; }
-  if(correctIndexRaw >= options.length){ showToast('La bonne réponse doit correspondre à une option renseignée'); return; }
-  const ts = Date.now();
-  const id = 'quiz_' + currentManagedCourseId + '__' + ts;
-  await saveWithRetry('quiz:' + currentManagedCourseId + '__' + ts, {
-    id, courseId: currentManagedCourseId, title, question, options, correctIndex: correctIndexRaw, createdAt: new Date().toISOString()
-  }, true);
-  document.getElementById('new-quiz-title').value = '';
-  document.getElementById('new-quiz-question').value = '';
-  [0,1,2,3].forEach(i => document.getElementById('new-quiz-option-'+i).value = '');
-  showToast('QCM créé ✓');
-  await renderManageCourseQuizzes();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchCourseQuizzes(courseId){
   const keys = await safeList('quiz:' + courseId + '__', true);
@@ -1524,15 +1419,8 @@ async function openCourseQuiz(quizId, courseId){
   }
 }
 async function submitQuizAnswer(quizId, courseId, selectedIndex){
-  const quizzes = await fetchCourseQuizzes(courseId);
-  const q = quizzes.find(x => x.id === quizId);
-  if(!q) return;
-  const correct = selectedIndex === q.correctIndex;
-  await saveWithRetry('quizsubmission:' + quizId + '__' + currentUser, {
-    quizId, courseId, studentUsername: currentUser, selectedIndex, correct, createdAt: new Date().toISOString()
-  }, true);
-  showToast(correct ? 'Bonne réponse ✓' : 'Réponse incorrecte');
-  await openCourseQuiz(quizId, courseId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchCourseFaq(courseId){
   return (await safeGet('coursefaq:' + courseId, true)) || [];
@@ -2089,29 +1977,12 @@ async function renderSubstituteCard(){
   }
 }
 async function assignSubstitute(){
-  const username = document.getElementById('substitute-username-input').value.trim();
-  const endDate = document.getElementById('substitute-end-date-input').value;
-  if(!username || !endDate){ showToast('Renseignez le nom d’utilisateur et la date de fin'); return; }
-  if(new Date(endDate) < new Date()){ showToast('La date de fin doit être dans le futur'); return; }
-  const target = await safeGet('user:' + username, true);
-  if(!target || !target.isTrainer){ showToast('Ce nom d’utilisateur ne correspond à aucun formateur validé'); return; }
-  const c = await safeGet('course:' + currentManagedCourseId, true);
-  if(!c) return;
-  c.substituteTrainer = username;
-  c.substituteEndDate = new Date(endDate).toISOString();
-  await saveWithRetry('course:' + currentManagedCourseId, c, true);
-  showToast('Remplaçant désigné ✓');
-  await createNotification(username, 'substitute_assigned', currentUser, currentManagedCourseId, c.title);
-  await renderSubstituteCard();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function removeSubstitute(){
-  const c = await safeGet('course:' + currentManagedCourseId, true);
-  if(!c) return;
-  c.substituteTrainer = null;
-  c.substituteEndDate = null;
-  await saveWithRetry('course:' + currentManagedCourseId, c, true);
-  showToast('Remplaçant retiré');
-  await renderSubstituteCard();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 /* ---------- CO-ENSEIGNEMENT ---------- */
 async function renderCoTrainerManager(){
@@ -2133,28 +2004,12 @@ async function renderCoTrainerManager(){
     '<button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addCoTrainer()">Ajouter</button>';
 }
 async function addCoTrainer(){
-  const username = document.getElementById('new-co-trainer-input').value.trim();
-  if(!username){ showToast('Renseignez un nom d’utilisateur'); return; }
-  if(username === currentUser){ showToast('Vous êtes déjà le formateur principal'); return; }
-  const target = await safeGet('user:' + username, true);
-  if(!target || !target.isTrainer){ showToast('Ce compte doit être un formateur déjà validé'); return; }
-  const c = await safeGet('course:' + currentManagedCourseId, true);
-  if(!c || c.trainerUsername !== currentUser) return;
-  if(!c.coTrainers) c.coTrainers = [];
-  if(c.coTrainers.includes(username)){ showToast('Déjà co-formateur de ce cours'); return; }
-  c.coTrainers.push(username);
-  await saveWithRetry('course:' + currentManagedCourseId, c, true);
-  showToast('Co-formateur ajouté ✓');
-  await createNotification(username, 'cotrainer_added', currentUser, currentManagedCourseId, c.title);
-  await renderCoTrainerManager();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function removeCoTrainer(username){
-  const c = await safeGet('course:' + currentManagedCourseId, true);
-  if(!c || c.trainerUsername !== currentUser) return;
-  c.coTrainers = (c.coTrainers || []).filter(u => u !== username);
-  await saveWithRetry('course:' + currentManagedCourseId, c, true);
-  showToast('Co-formateur retiré');
-  await renderCoTrainerManager();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 /* ---------- EMPLOI DU TEMPS HEBDOMADAIRE ---------- */
 const WEEKDAY_NAMES_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
@@ -2911,14 +2766,8 @@ async function renderManageContestEntries(){
   ).join('');
 }
 async function submitContestScore(storageKey, studentUsername){
-  const score = parseFloat(document.getElementById('contest-score-' + studentUsername).value);
-  if(isNaN(score) || score < 0 || score > 20){ showToast('Entrez une note valide entre 0 et 20'); return; }
-  const e = await safeGet(storageKey, true);
-  if(!e) return;
-  e.score = score;
-  await saveWithRetry(storageKey, e, true);
-  showToast('Note enregistrée ✓');
-  await renderManageContestEntries();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function publishContestResults(){
   const keys = await safeList('contestentry:' + currentManagedContestId + '__', true);
@@ -2998,21 +2847,8 @@ async function populateExamStudentSelect(){
   sel.innerHTML = students.length === 0 ? '<option value="">Aucun élève inscrit</option>' : students.map(u => '<option value="'+escapeHtml(u)+'">@'+escapeHtml(u)+'</option>').join('');
 }
 async function recordExamResult(){
-  const studentUsername = document.getElementById('new-exam-student').value;
-  const examTitle = document.getElementById('new-exam-title').value.trim();
-  const score = parseFloat(document.getElementById('new-exam-score').value);
-  const comment = document.getElementById('new-exam-comment').value.trim();
-  if(!studentUsername || !examTitle || isNaN(score) || score < 0 || score > 20){ showToast('Renseignez l’élève, le nom de l’examen, et une note valide entre 0 et 20'); return; }
-  const ts = Date.now();
-  await saveWithRetry('examresult:' + currentManagedCourseId + '__' + studentUsername + '__' + ts, {
-    courseId: currentManagedCourseId, studentUsername, examTitle, score, comment, createdAt: new Date().toISOString()
-  }, true);
-  document.getElementById('new-exam-title').value = '';
-  document.getElementById('new-exam-score').value = '';
-  document.getElementById('new-exam-comment').value = '';
-  showToast('Résultat enregistré ✓');
-  await createNotification(studentUsername, 'exam_result', currentUser, currentManagedCourseId, examTitle + '|' + score);
-  await renderManageCourseExamResults();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function renderManageCourseExamResults(){
   const el = document.getElementById('manage-course-exam-results');
@@ -3032,24 +2868,8 @@ async function renderManageCourseExamResults(){
 }
 /* ---------- ESPACE PARENT/TUTEUR ---------- */
 async function requestParentLink(){
-  const studentUsername = document.getElementById('parent-link-username').value.trim();
-  if(!studentUsername){ showToast('Renseignez le nom d’utilisateur de l’élève'); return; }
-  if(studentUsername === currentUser){ showToast('Vous ne pouvez pas vous suivre vous-même'); return; }
-  const student = await safeGet('user:' + studentUsername, true);
-  if(!student){ showToast('Ce compte n’existe pas'); return; }
-  const existingLink = await safeGet('parentlink:' + currentUser + '__' + studentUsername, true);
-  if(existingLink){ showToast('Déjà lié à cet élève'); return; }
-  const existingRequests = await fetchParentLinkRequests();
-  const alreadyPending = existingRequests.some(r => r.parentUsername === currentUser && r.studentUsername === studentUsername && r.status === 'pending');
-  if(alreadyPending){ showToast('Une demande est déjà en attente pour cet élève'); return; }
-  const id = 'parentreq_' + Date.now();
-  await saveWithRetry('parentlinkrequest:' + id, {
-    id, parentUsername: currentUser, studentUsername, status: 'pending', createdAt: new Date().toISOString()
-  }, true);
-  document.getElementById('parent-link-username').value = '';
-  showToast('Demande envoyée — en attente d’approbation de l’élève ✓');
-  await createNotification(studentUsername, 'parent_link_request', currentUser, id);
-  await renderParentSpace();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchParentLinkRequests(){
   const keys = await safeList('parentlinkrequest:', true);
@@ -3059,12 +2879,8 @@ async function fetchParentLinkRequests(){
 }
 /* ---------- MODE FAMILIAL / RESTREINT (fil principal) ---------- */
 async function toggleRestrictedMode(studentUsername){
-  const link = await safeGet('parentlink:' + currentUser + '__' + studentUsername, true);
-  if(!link || !link.approved){ showToast('Lien parent-enfant non approuvé'); return; }
-  const checked = document.getElementById('restricted-' + studentUsername).checked;
-  await saveWithRetry('restrictedmode:' + studentUsername, checked, true);
-  showToast(checked ? 'Mode Familial activé pour @' + studentUsername + ' ✓' : 'Mode Familial désactivé');
-  await createNotification(studentUsername, 'restricted_mode_changed', currentUser, null, checked ? 'activé' : 'désactivé');
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function isRestrictedModeActive(username){
   const active = await safeGet('restrictedmode:' + username, true);
@@ -3102,22 +2918,12 @@ async function renderStudentParentRequests(){
   ).join('');
 }
 async function approveParentLink(storageKey){
-  const r = await safeGet(storageKey, true);
-  if(!r) return;
-  r.status = 'approved';
-  await saveWithRetry(storageKey, r, true);
-  await saveWithRetry('parentlink:' + r.parentUsername + '__' + r.studentUsername, {
-    parentUsername: r.parentUsername, studentUsername: r.studentUsername, approved: true, createdAt: new Date().toISOString()
-  }, true);
-  showToast('Suivi autorisé ✓');
-  await createNotification(r.parentUsername, 'parent_link_approved', currentUser, null);
-  await renderStudentParentRequests();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function rejectParentLink(storageKey){
-  const r = await safeGet(storageKey, true);
-  if(r){ r.status = 'rejected'; await saveWithRetry(storageKey, r, true); }
-  showToast('Demande refusée');
-  await renderStudentParentRequests();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function openParentViewStudent(studentUsername){
   const link = await safeGet('parentlink:' + currentUser + '__' + studentUsername, true);
@@ -3467,21 +3273,8 @@ async function contactStudyBuddy(username){
   if(input && !input.value) input.value = 'Salut ! On révise ensemble pour le cours ?';
 }
 async function ensureCertificateVerificationCode(courseId, studentUsername, courseTitle, trainerUsername, average){
-  const existingKey = 'certcodelookup:' + courseId + '__' + studentUsername;
-  const existing = await safeGet(existingKey, true);
-  if(existing) return existing;
-  const hash = await sha256Hex(courseId + '__' + studentUsername + '__' + Date.now());
-  const code = 'SG-' + hash.slice(0, 8).toUpperCase();
-  await saveWithRetry(existingKey, code, true);
-  await saveWithRetry('certverification:' + code, {
-    code, studentUsername, courseId, courseTitle, trainerUsername, average, issuedAt: new Date().toISOString()
-  }, true);
-  const student = await safeGet('user:' + studentUsername, true);
-  if(student && !student.isAlumnus){
-    student.isAlumnus = true;
-    await saveWithRetry('user:' + studentUsername, student, true);
-  }
-  return code;
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function verifyCertificateCode(){
   const input = document.getElementById('verify-cert-code-input').value.trim().toUpperCase();
@@ -3732,14 +3525,8 @@ async function renderManageCourseStudents(){
   }).join('');
 }
 async function requestStudentRemoval(courseId, studentUsername){
-  const reason = prompt('Pourquoi demandez-vous le retrait de @' + studentUsername + ' ? (l’administration décidera)');
-  if(reason === null || !reason.trim()) return;
-  const id = 'studentremoval_' + Date.now();
-  await saveWithRetry('studentremoval:' + id, {
-    id, courseId, studentUsername, requestedBy: currentUser, reason: reason.trim(), status: 'pending', createdAt: new Date().toISOString()
-  }, true);
-  showToast('Demande envoyée à l’administration ✓');
-  await renderManageCourseStudents();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchStudentRemovalRequests(){
   const keys = await safeList('studentremoval:', true);
@@ -3748,21 +3535,12 @@ async function fetchStudentRemovalRequests(){
   return list;
 }
 async function approveStudentRemoval(storageKey){
-  const r = await safeGet(storageKey, true);
-  if(!r) return;
-  await window.storage.delete('enrollment:' + r.courseId + '__' + r.studentUsername, true).catch(() => {});
-  r.status = 'approved';
-  await saveWithRetry(storageKey, r, true);
-  showToast('Élève retiré du cours ✓');
-  await logAdminAction('Retrait d’élève approuvé', '@' + r.studentUsername + ' — demandé par @' + r.requestedBy + ' (' + r.reason + ')');
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function rejectStudentRemoval(storageKey){
-  const r = await safeGet(storageKey, true);
-  if(r){ r.status = 'rejected'; await saveWithRetry(storageKey, r, true); }
-  showToast('Demande de retrait refusée');
-  await logAdminAction('Retrait d’élève refusé', r ? '@' + r.studentUsername : storageKey);
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 
 const DEFAULT_QUICK_REPLIES = ['Produit disponible, merci de votre intérêt !', 'Livraison sous 48h.', 'Merci de confirmer votre adresse.'];

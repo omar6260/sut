@@ -222,15 +222,8 @@ async function loadInstantTrainerCard(){
   }
 }
 async function grantSelfInstantTrainer(){
-  const me = (await safeGet('user:' + currentUser, true)) || {username: currentUser, createdAt: new Date().toISOString()};
-  me.isTrainer = true;
-  me.isAdminTrainer = true;
-  if(!me.trainerSubject) me.trainerSubject = 'Administration Suktum';
-  if(!me.trainerSince) me.trainerSince = new Date().toISOString();
-  await saveWithRetry('user:' + currentUser, me, true);
-  showToast('Statut formateur accordé — vos cours seront publiés directement ✓');
-  await logAdminAction('Statut formateur instantané accordé', '@' + currentUser);
-  await loadInstantTrainerCard();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 function enterEducationSpaceFromAdmin(){
   adminEducationBypass = true;
@@ -265,23 +258,12 @@ async function renderEduSubscriptionStatusCard(){
   }
 }
 async function cancelEduSubscription(){
-  const sub = await safeGet('edusubscription:' + currentUser, true);
-  if(!sub) return;
-  if(!confirm('Annuler votre abonnement Espace Éducation ? Vous garderez l’accès jusqu’au ' + new Date(sub.expiresAt).toLocaleDateString('fr-FR') + ', mais il ne sera plus renouvelé après cette date.')) return;
-  sub.cancelled = true;
-  await saveWithRetry('edusubscription:' + currentUser, sub, true);
-  showToast('Abonnement annulé — accès conservé jusqu’au ' + new Date(sub.expiresAt).toLocaleDateString('fr-FR'));
-  await renderEduSubscriptionStatusCard();
-  await renderMySubscriptions();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function reactivateEduSubscription(){
-  const sub = await safeGet('edusubscription:' + currentUser, true);
-  if(!sub) return;
-  sub.cancelled = false;
-  await saveWithRetry('edusubscription:' + currentUser, sub, true);
-  showToast('Renouvellement réactivé ✓');
-  await renderEduSubscriptionStatusCard();
-  await renderMySubscriptions();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function renderTrialBanner(){
   const el = document.getElementById('edu-trial-banner');
@@ -322,15 +304,8 @@ function requestStateFundedAccess(){
   go('request-state-funded');
 }
 async function submitStateFundedRequest(){
-  const reason = document.getElementById('state-funded-reason-input').value.trim();
-  if(!reason){ showToast('Précisez le programme ou l’organisme'); return; }
-  const id = 'statereq_' + Date.now();
-  await saveWithRetry('staterequest:' + id, {
-    id, username: currentUser, country: currentUserCountry, reason, status: 'pending', createdAt: new Date().toISOString()
-  }, true);
-  document.getElementById('state-funded-reason-input').value = '';
-  showToast('Demande envoyée à l’administration ✓');
-  go('education-hub');
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchStateFundedRequests(){
   const keys = await safeList('staterequest:', true);
@@ -352,55 +327,12 @@ async function populateCsvImportCourseSelect(){
   select.innerHTML = allCourses.map(c => '<option value="'+c.id+'">'+escapeHtml(c.title)+'</option>').join('');
 }
 async function importStudentListCSV(){
-  const fileInput = document.getElementById('csv-import-file-input');
-  const courseId = document.getElementById('csv-import-course-select').value;
-  const file = fileInput.files[0];
-  if(!file){ showToast('Choisissez un fichier CSV'); return; }
-  if(!courseId){ showToast('Choisissez un cours'); return; }
-  const c = await safeGet('course:' + courseId, true);
-  if(!c){ showToast('Cours introuvable'); return; }
-  const text = await file.text();
-  const usernames = text.split(/\r?\n/).map(l => l.trim().replace(/^"|"$/g, '')).filter(Boolean);
-  let enrolledCount = 0;
-  const notFound = [];
-  for(const username of usernames){
-    const u = await safeGet('user:' + username, true).catch(() => null);
-    if(!u){ notFound.push(username); continue; }
-    u.stateFunded = true;
-    await saveWithRetry('user:' + username, u, true);
-    const existing = await safeGet('enrollment:' + courseId + '__' + username, true).catch(() => null);
-    if(!existing){
-      await saveWithRetry('enrollment:' + courseId + '__' + username, {
-        courseId, studentUsername: username, trainerUsername: c.trainerUsername, price: c.price,
-        country: u.country || null, status: 'approved', stateFundedImport: true, createdAt: new Date().toISOString()
-      }, true);
-    }
-    await createNotification(username, 'enrolled_via_institutional_import', currentUser, courseId, c.title);
-    enrolledCount++;
-  }
-  document.getElementById('csv-import-result').innerHTML =
-    '<p style="margin:0 0 4px; font-size:12.5px; color:var(--lagoon);">✓ '+enrolledCount+' compte(s) trouvé(s) et inscrit(s)</p>' +
-    (notFound.length > 0 ? '<p style="margin:0; font-size:12px; color:var(--coral);">✕ '+notFound.length+' introuvable(s) : '+notFound.map(escapeHtml).join(', ')+'</p>' : '');
-  fileInput.value = '';
-  showToast('Import terminé ✓');
-  await logAdminAction('Import de liste institutionnelle', c.title + ' — ' + enrolledCount + ' compte(s)');
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function generateActivationCodes(){
-  const count = Math.max(1, Math.min(200, parseInt(document.getElementById('activation-code-count').value, 10) || 0));
-  const label = document.getElementById('activation-code-batch-label').value.trim() || 'Cohorte sans nom';
-  if(!count){ showToast('Renseignez un nombre de codes valide'); return; }
-  const batchId = 'batch_' + Date.now();
-  const codes = [];
-  for(let i = 0; i < count; i++) codes.push(generateSingleActivationCode());
-  await saveWithRetry('activationbatch:' + batchId, { id: batchId, label, codes, createdAt: new Date().toISOString(), createdBy: currentUser }, true);
-  for(const code of codes){
-    await saveWithRetry('activationcode:' + code, { code, batchId, label, redeemed: false, redeemedBy: null, redeemedAt: null }, true);
-  }
-  document.getElementById('activation-code-count').value = '';
-  document.getElementById('activation-code-batch-label').value = '';
-  showToast(count + ' code(s) générés ✓');
-  await logAdminAction('Codes d’activation institutionnels générés', label + ' — ' + count + ' code(s)');
-  await renderActivationCodeBatches();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function renderActivationCodeBatches(){
   const el = document.getElementById('activation-code-batches-list');
@@ -479,80 +411,28 @@ async function exportInstitutionalReport(){
   a.click();
 }
 async function redeemActivationCode(){
-  const input = document.getElementById('activation-code-input');
-  const code = input.value.trim().toUpperCase();
-  if(!code){ showToast('Saisissez un code'); return; }
-  const record = await safeGet('activationcode:' + code, true).catch(() => null);
-  if(!record){ showToast('Code invalide'); return; }
-  if(record.redeemed){ showToast('Ce code a déjà été utilisé le ' + new Date(record.redeemedAt).toLocaleDateString('fr-FR')); return; }
-  record.redeemed = true;
-  record.redeemedBy = currentUser;
-  record.redeemedAt = new Date().toISOString();
-  await saveWithRetry('activationcode:' + code, record, true);
-  const u = await safeGet('user:' + currentUser, true);
-  if(u){ u.stateFunded = true; await saveWithRetry('user:' + currentUser, u, true); }
-  showToast('Code activé ✓ — accès financé accordé');
-  await logAdminAction('Code d’activation utilisé', '@' + currentUser + ' — ' + record.label);
-  await renderEducationHub();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function grantStateFundedAccess(){
-  const username = document.getElementById('state-funded-username').value.trim();
-  if(!username){ showToast('Renseignez un nom d’utilisateur'); return; }
-  const u = await safeGet('user:' + username, true);
-  if(!u){ showToast('Ce compte n’existe pas'); return; }
-  u.stateFunded = true;
-  await saveWithRetry('user:' + username, u, true);
-  document.getElementById('state-funded-username').value = '';
-  showToast('Accès financé par l’État accordé ✓');
-  await createNotification(username, 'state_funded_approved', 'Suktum', null, '');
-  await logAdminAction('Accès Espace Éducation financé par l’État accordé', '@' + username);
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function revokeStateFundedAccess(username){
-  const u = await safeGet('user:' + username, true);
-  if(!u) return;
-  u.stateFunded = false;
-  await saveWithRetry('user:' + username, u, true);
-  showToast('Accès financé retiré');
-  await logAdminAction('Accès Espace Éducation financé par l’État retiré', '@' + username);
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function approveStateFundedRequest(id){
-  const req = await safeGet('staterequest:' + id, true);
-  if(!req) return;
-  const u = await safeGet('user:' + req.username, true);
-  if(u){ u.stateFunded = true; await saveWithRetry('user:' + req.username, u, true); }
-  req.status = 'approved';
-  await saveWithRetry('staterequest:' + id, req, true);
-  showToast('Demande approuvée — accès financé accordé ✓');
-  await createNotification(req.username, 'state_funded_approved', 'Suktum', null, '');
-  await logAdminAction('Demande d’accès financé par l’État approuvée', '@' + req.username + ' — ' + req.reason);
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function rejectStateFundedRequest(id){
-  const req = await safeGet('staterequest:' + id, true);
-  if(req){ req.status = 'rejected'; await saveWithRetry('staterequest:' + id, req, true); }
-  showToast('Demande refusée');
-  await logAdminAction('Demande d’accès financé par l’État refusée', req ? '@' + req.username : id);
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function subscribeToEducationSpace(){
-  const price = await getEducationSubPrice();
-  const id = 'edusubreq_' + Date.now();
-  await saveWithRetry('edusubrequest:' + id, {
-    id, username: currentUser, country: currentUserCountry, price, status: 'pending', createdAt: new Date().toISOString()
-  }, true);
-  if(await isAutoApproveEduSubEnabled()){
-    await approveEduSubRequest(id);
-    await logAdminAction('Abonnement Espace Éducation approuvé automatiquement', '@' + currentUser + ' — ' + price.toLocaleString('fr-FR') + ' FCFA');
-    showToast('Accès Espace Éducation activé automatiquement ✓');
-    await renderEducationHub();
-    return;
-  }
-  const instructions = await getPaymentInstructions(currentUserCountry);
-  alert('Pour accéder à l’Espace Éducation (' + price.toLocaleString('fr-FR') + ' FCFA/mois) :\n\n' + instructions + '\n\nVotre accès sera activé dès que votre paiement sera vérifié, et à renouveler chaque mois.');
-  showToast('Demande envoyée — en attente de validation ✓');
-  await renderEducationHub();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function fetchEduSubRequests(){
   const keys = await safeList('edusubrequest:', true);
@@ -562,25 +442,12 @@ async function fetchEduSubRequests(){
   return list;
 }
 async function approveEduSubRequest(id){
-  const req = await safeGet('edusubrequest:' + id, true);
-  if(!req) return;
-  const expiresAt = new Date(Date.now() + EDU_SUB_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  await saveWithRetry('edusubscription:' + req.username, { username: req.username, price: req.price, country: req.country, startedAt: new Date().toISOString(), expiresAt, cancelled: false }, true);
-  await saveWithRetry('edupurchase:' + req.username + '__' + Date.now(), { username: req.username, price: req.price, country: req.country, purchasedAt: new Date().toISOString() }, true);
-  const paymentId = 'edusubpay_' + Date.now();
-  await saveWithRetry('edusubpayment:' + paymentId, { id: paymentId, username: req.username, country: req.country, amount: req.price, createdAt: new Date().toISOString() }, true);
-  req.status = 'approved';
-  await saveWithRetry('edusubrequest:' + id, req, true);
-  showToast('Accès Espace Éducation activé ✓');
-  await createNotification(req.username, 'edusub_approved', 'Suktum', null, '');
-  await logAdminAction('Abonnement Espace Éducation validé', '@' + req.username + ' — ' + req.price.toLocaleString('fr-FR') + ' FCFA');
-  await loadEducationAdmin();
-  await loadEducationOverview();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function rejectEduSubRequest(id){
-  await window.storage.delete('edusubrequest:' + id, true).catch(() => {});
-  showToast('Demande rejetée');
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function registerAsStudent(){
   const level = document.getElementById('student-level-select') ? document.getElementById('student-level-select').value : '';

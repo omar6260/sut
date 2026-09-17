@@ -804,9 +804,25 @@ export const answerQuiz = onCall(opts, async (req) => {
     const sub = await c.get('edusubscription:' + d.username);
     if (!isEduSubActive(me, sub)) throw new HttpsError('permission-denied', 'Votre abonnement Espace Éducation a expiré ou n’a pas encore été activé');
     const correct = d.selectedIndex === answers.correctIndex;
-    c.set('quizsubmission:' + d.quizId + '__' + d.username, { quizId: d.quizId, courseId: d.courseId, studentUsername: d.username, selectedIndex: d.selectedIndex, correct, createdAt: nowIso() }, 'server');
+    // `correctIndex` est révélé dans la copie une fois répondu (affichage l. 18611-18618), jamais dans le doc `quiz:`.
+    c.set('quizsubmission:' + d.quizId + '__' + d.username, { quizId: d.quizId, courseId: d.courseId, studentUsername: d.username, selectedIndex: d.selectedIndex, correct, correctIndex: answers.correctIndex, createdAt: nowIso() }, 'server');
     return result(c, { correct, correctIndex: answers.correctIndex });
   });
+});
+/** Bonnes réponses d'un cours pour ses gestionnaires seulement (affichages formateur l. 18595-18598 et l. 18276-18283). */
+export const courseAnswers = onCall(opts, async (req) => {
+  const d = parse(z.object({ username, courseId: id }), req.data);
+  await requireUsername(req, d.username);
+  const course = await kvGet('course:' + d.courseId);
+  if (!canManageCourse(course, d.username)) throw new HttpsError('permission-denied', 'Cours introuvable');
+  const snap = await db().collection('course_answers').where('courseId', '==', d.courseId).get();
+  const quiz: Record<string, number> = {}, fullexam: Record<string, (number | null)[]> = {};
+  for (const doc of snap.docs) {
+    const [kind, ...rest] = doc.id.split('__');
+    const key = rest.join('__').replace(/%5F/g, '_').replace(/%2E/g, '.').replace(/%2F/g, '/').replace(/%25/g, '%');
+    if (kind === 'quiz') quiz[key] = doc.data().correctIndex; else if (kind === 'fullexam') fullexam[key] = doc.data().correctIndexes;
+  }
+  return { ok: true, touched: [], quiz, fullexam };
 });
 /** publishFullExam l. 18370-18385 : `questions[].correctIndex` retiré du doc public. */
 export const publishFullExam = onCall(opts, async (req) => {

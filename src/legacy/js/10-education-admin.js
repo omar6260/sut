@@ -1,23 +1,11 @@
 /* ---------- ADMIN — ESPACE ÉDUCATION ---------- */
 async function approveTrainerRequest(id){
-  const req = await safeGet('trainerrequest:' + id, true);
-  if(!req) return;
-  const u = await safeGet('user:' + req.username, true);
-  if(u){ u.isTrainer = true; u.trainerPaymentNumber = req.paymentNumber || ''; u.trainerSubject = req.subject; u.trainerSince = new Date().toISOString(); await saveWithRetry('user:' + req.username, u, true); }
-  req.status = 'approved';
-  await saveWithRetry('trainerrequest:' + id, req, true);
-  showToast('Formateur validé ✓');
-  await createNotification(req.username, 'trainer_approved', 'Suktum', null, req.subject);
-  await logAdminAction('Candidature formateur validée', '@' + req.username + ' — ' + req.subject);
-  await loadEducationAdmin();
-  await loadEducationOverview();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function rejectTrainerRequest(id){
-  const req = await safeGet('trainerrequest:' + id, true);
-  if(req){ req.status = 'rejected'; await saveWithRetry('trainerrequest:' + id, req, true); }
-  showToast('Candidature refusée');
-  await logAdminAction('Candidature formateur refusée', req ? '@' + req.username : id);
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function notifyFollowersOfNewCourse(trainerUsername, courseId, courseTitle){
   const trainer = await safeGet('user:' + trainerUsername, true);
@@ -27,52 +15,24 @@ async function notifyFollowersOfNewCourse(trainerUsername, courseId, courseTitle
   }
 }
 async function approveCourse(courseId){
-  const c = await safeGet('course:' + courseId, true);
-  if(!c) return;
-  c.status = 'active';
-  await saveWithRetry('course:' + courseId, c, true);
-  showToast('Cours validé et publié ✓');
-  await createNotification(c.trainerUsername, 'course_approved', 'Suktum', courseId, c.title);
-  await notifyFollowersOfNewCourse(c.trainerUsername, courseId, c.title);
-  await logAdminAction('Cours validé', c.title + ' (@' + c.trainerUsername + ')');
-  await loadEducationAdmin();
-  await loadEducationOverview();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function suspendCourse(courseId){
-  const c = await safeGet('course:' + courseId, true);
-  if(!c) return;
-  c.status = c.status === 'suspended' ? 'active' : 'suspended';
-  await saveWithRetry('course:' + courseId, c, true);
-  showToast(c.status === 'suspended' ? 'Cours suspendu' : 'Cours réactivé ✓');
-  await logAdminAction(c.status === 'suspended' ? 'Cours suspendu' : 'Cours réactivé', c.title + ' (@' + c.trainerUsername + ')');
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function deleteCourseCompletely(courseId){
-  const c = await safeGet('course:' + courseId, true);
-  if(!c) return;
-  const ok = confirm('Supprimer définitivement "' + c.title + '" ? Toutes ses leçons, exercices, et données seront perdus. Cette action est irréversible.');
-  if(!ok) return;
-  await window.storage.delete('course:' + courseId, true).catch(() => {});
-  showToast('Cours supprimé définitivement');
-  await logAdminAction('Cours supprimé définitivement', c.title + ' (@' + c.trainerUsername + ')');
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function approveEnrollment(enrollmentKey){
-  const e = await safeGet(enrollmentKey, true);
-  if(!e) return;
-  e.status = 'approved';
-  await saveWithRetry(enrollmentKey, e, true);
-  await createFollowRelationship(e.studentUsername, e.trainerUsername);
-  showToast('Inscription validée — étudiant automatiquement abonné au formateur ✓');
-  await createNotification(e.studentUsername, 'course_approved', 'Suktum', e.courseId, 'votre inscription');
-  await logAdminAction('Inscription au cours validée', '@' + e.studentUsername + ' — ' + e.price.toLocaleString('fr-FR') + ' FCFA');
-  await loadEducationAdmin();
-  await loadEducationOverview();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function rejectEnrollment(enrollmentKey){
-  await window.storage.delete(enrollmentKey, true).catch(() => {});
-  showToast('Inscription rejetée');
-  await loadEducationAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function approveFlaggedLesson(lessonKey){
   const l = await safeGet(lessonKey, true);
@@ -314,16 +274,8 @@ async function generateTrainerAISummary(username){
   }
 }
 async function excludeTrainer(username){
-  const ok = confirm('Exclure @' + username + ' du statut formateur ? Ses cours existants resteront visibles sauf suspension manuelle.');
-  if(!ok) return;
-  const t = await safeGet('user:' + username, true);
-  if(!t) return;
-  t.isTrainer = false;
-  await saveWithRetry('user:' + username, t, true);
-  showToast('Formateur exclu ✓');
-  await logAdminAction('Formateur exclu de l’Espace Éducation', '@' + username);
-  go('admin');
-  await renderAdminTrainersList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/20-education.js */
+  return;
 }
 async function loadEducationAdmin(){
   const reqEl = document.getElementById('admin-trainer-requests');
