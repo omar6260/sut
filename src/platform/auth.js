@@ -7,8 +7,12 @@
   let functions;
   const call = async (name, data) => {
     if (!functions) { functions = fb.app().functions(REGION); if (PLATFORM.env.local) functions.useEmulator('localhost', 5001); }
-    try { return (await functions.httpsCallable(name)(data ?? {})).data; }
-    catch (e) { const err = new Error(e.message || 'Erreur serveur'); err.code = e.code; throw err; }
+    try {
+      const result = (await functions.httpsCallable(name)(data ?? {})).data;
+      // Convention serveur : `touched` = clés legacy modifiées → on invalide le cache de l'adaptateur.
+      if (result && Array.isArray(result.touched) && window.storage && window.storage._cache) for (const k of result.touched) { window.storage._cache.delete('s:' + k); window.storage._cache.delete('p:' + k); }
+      return result;
+    } catch (e) { const err = new Error(e.message || 'Erreur serveur'); err.code = e.code; throw err; }
   };
 
   const googleProvider = () => new fb.auth.GoogleAuthProvider();

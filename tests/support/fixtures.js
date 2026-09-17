@@ -69,6 +69,14 @@ export const test = base.extend({
         return page.evaluate(async (p) => { const r = await window.SuktumPlatform.authApi.signInWithGoogleForTests(p); await window.signInWithGoogleSuktum(r); return r; }, { sub, email });
       },
 
+      /** Backend firebase : tentative d'écriture directe (triche) depuis la page ; renvoie le code d'erreur Firestore ou null si acceptée. */
+      async cheatWrite(page, key, value, shared = true) {
+        return page.evaluate(async ({ key, value, shared }) => {
+          try { window.storage._cache.clear(); await window.storage.set(key, JSON.stringify(value), shared); return null; }
+          catch (e) { return e.code || e.message; }
+        }, { key, value, shared });
+      },
+
       /** Dernier toast affiché sur un appareil (ou null). */
       lastToast(page) {
         const mine = toasts.filter((t) => t.device === page.suktumDevice);

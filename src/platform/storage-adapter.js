@@ -92,6 +92,7 @@
       return { keys, prefix, shared: !!shared };
     }
 
-    return { get, set, delete: del, list, _cache: cache };
+    const invalidate = (...keys) => { for (const k of keys) { cache.delete('s:' + k); cache.delete('p:' + k); } };
+    return { get, set, delete: del, list, invalidate, _cache: cache };
   };
 })();

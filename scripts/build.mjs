@@ -30,7 +30,11 @@ export async function assemble({ mode = 'single' } = {}) {
   if (mode === 'multi') {
     // legacy-overrides.js s'insère avant le dernier script legacy (20-init.js) : après les déclarations, avant initIdentity().
     const tags = jsFiles.map((f) => `<script src="js/${f}"></script>`);
-    if (existsSync(path.join(platformDir, 'legacy-overrides.js'))) tags.splice(tags.length - 1, 0, '<script src="platform/legacy-overrides.js"></script>');
+    // Surcharges : legacy-overrides.js (phase 05) puis overrides/<domaine>.js (phase 06+), avant 20-init.js.
+    const overrides = [];
+    if (existsSync(path.join(platformDir, 'legacy-overrides.js'))) overrides.push('platform/legacy-overrides.js');
+    if (existsSync(path.join(platformDir, 'overrides'))) for (const f of (await readdir(path.join(platformDir, 'overrides'))).filter((f) => f.endsWith('.js')).sort()) overrides.push(`platform/overrides/${f}`);
+    tags.splice(tags.length - 1, 0, ...overrides.map((p) => `<script src="${p}"></script>`));
     scripts = [vendor, platform, ...tags].filter(Boolean).join('\n');
   } else {
     const parts = [];
