@@ -22,13 +22,13 @@ test.describe('Espace Éducation', () => {
     await suktum.dismissTour(a);
 
     // Statut formateur accordé (validation admin simulée).
-    const fatou = suktum.storage.readJSON('user:Prof_Fatou');
-    suktum.storage.writeJSON('user:Prof_Fatou', { ...fatou, isTrainer: true });
+    const fatou = (await suktum.storage.readJSON('user:Prof_Fatou'));
+    await suktum.storage.writeJSON('user:Prof_Fatou', { ...fatou, isTrainer: true });
 
     // A entre dans l'Espace Éducation : son essai démarre, l'espace formateur est proposé.
     await openEducationHub(a);
     await expect(a.locator('#edu-trial-banner')).toContainText('Essai gratuit — 7 jour(s) restant(s)');
-    expect(suktum.storage.readJSON('user:Prof_Fatou').eduTrialStartedAt).toBeTruthy();
+    expect((await suktum.storage.readJSON('user:Prof_Fatou')).eduTrialStartedAt).toBeTruthy();
     await a.locator('#education-trainer-status-card [onclick="go(\'trainer-dashboard\')"]').click();
     await expect(a.locator('#screen-trainer-dashboard')).toHaveClass(/active/);
 
@@ -38,22 +38,22 @@ test.describe('Espace Éducation', () => {
     await a.locator('#new-course-price').fill('5000');
     await a.locator('#screen-trainer-dashboard button[onclick="createCourse()"]').click();
     await expect.poll(() => suktum.lastToast(a)).toBe('Cours envoyé pour validation avant publication ✓');
-    const courseKey = suktum.storage.list(null, 'course:', true).keys[0];
-    const course = suktum.storage.readJSON(courseKey);
+    const courseKey = (await suktum.storage.list(null, 'course:', true)).keys[0];
+    const course = (await suktum.storage.readJSON(courseKey));
     expect(course).toMatchObject({ trainerUsername: 'Prof_Fatou', title: 'Grammaire française niveau 1', price: 5000, status: 'pending_review' });
     await expect(a.locator('#trainer-courses-list')).toContainText('En attente de validation');
 
     // Validation admin simulée, puis A ajoute une leçon.
-    suktum.storage.writeJSON(courseKey, { ...course, status: 'active' });
+    await suktum.storage.writeJSON(courseKey, { ...course, status: 'active' });
     await a.locator(`#trainer-courses-list [onclick="openManageCourse('${course.id}')"]`).click();
     await expect(a.locator('#screen-manage-course')).toHaveClass(/active/);
     await a.locator('#new-lesson-title').fill('Leçon 1 — Le nom');
     await a.locator('#new-lesson-content').fill('Le nom désigne une personne, un animal, une chose ou une idée.');
     await a.locator('#screen-manage-course button[onclick="addLessonToCourse()"]').click();
     await expect.poll(() => suktum.lastToast(a)).toBe('Leçon ajoutée ✓');
-    const lessonKeys = suktum.storage.list(null, `lesson:${course.id}__`, true).keys;
+    const lessonKeys = (await suktum.storage.list(null, `lesson:${course.id}__`, true)).keys;
     expect(lessonKeys).toHaveLength(1);
-    expect(suktum.storage.readJSON(lessonKeys[0])).toMatchObject({ courseId: course.id, title: 'Leçon 1 — Le nom', aiFlagged: false });
+    expect((await suktum.storage.readJSON(lessonKeys[0]))).toMatchObject({ courseId: course.id, title: 'Leçon 1 — Le nom', aiFlagged: false });
     await expect(a.locator('#manage-course-lessons')).toContainText('Leçon 1 — Le nom');
 
     // B (élève) entre dans l'Espace Éducation, trouve le cours et s'inscrit pendant son essai.
@@ -72,9 +72,9 @@ test.describe('Espace Éducation', () => {
     await b.locator(`#course-detail-content button[onclick="enrollInCourse('${course.id}')"]`).click();
     await expect.poll(() => suktum.lastToast(b)).toBe('Accès gratuit pendant votre essai — profitez-en pour découvrir ce cours ✓');
 
-    const enrollment = suktum.storage.readJSON(`enrollment:${course.id}__Eleve_Ibou`);
+    const enrollment = (await suktum.storage.readJSON(`enrollment:${course.id}__Eleve_Ibou`));
     expect(enrollment).toMatchObject({ courseId: course.id, studentUsername: 'Eleve_Ibou', trainerUsername: 'Prof_Fatou', status: 'approved', trialEnrollment: true });
-    expect(suktum.storage.readJSON('user:Eleve_Ibou')).toMatchObject({ isStudent: true });
+    expect((await suktum.storage.readJSON('user:Eleve_Ibou'))).toMatchObject({ isStudent: true });
 
     // L'élève inscrit voit la leçon.
     await expect(b.locator('#course-detail-content')).toContainText('Leçon 1 — Le nom');

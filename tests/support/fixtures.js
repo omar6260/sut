@@ -11,10 +11,15 @@
 import { test as base, expect } from '@playwright/test';
 import { MemoryStorage, installStorage } from './memory-storage.js';
 import { installNetworkMocks } from './network-mocks.js';
+import { FirestoreStorage, clearEmulator } from './firestore-storage.js';
+
+// SUKTUM_BACKEND=firebase → l'app utilise l'adaptateur Firestore (émulateur) ; sinon stockage en mémoire injecté.
+export const BACKEND = process.env.SUKTUM_BACKEND === 'firebase' ? 'firebase' : 'memory';
 
 export const test = base.extend({
   storage: async ({}, use) => {
-    await use(new MemoryStorage());
+    if (BACKEND === 'firebase') { await clearEmulator(); await use(new FirestoreStorage()); }
+    else await use(new MemoryStorage());
   },
 
   suktum: async ({ browser, storage }, use, testInfo) => {
@@ -38,7 +43,7 @@ export const test = base.extend({
         const page = await context.newPage();
         page.suktumDevice = deviceId;
         page.on('pageerror', (e) => errors.push({ device: deviceId, message: e.message }));
-        await installStorage(page, storage, deviceId);
+        if (BACKEND === 'memory') await installStorage(page, storage, deviceId);
         await page.exposeBinding('__suktumToast', (_s, message) => { toasts.push({ device: deviceId, message }); });
         await page.addInitScript(() => {
           document.addEventListener('DOMContentLoaded', () => {
@@ -49,6 +54,7 @@ export const test = base.extend({
           });
         });
         await page.goto('/');
+        if (BACKEND === 'firebase') storage.registerDevice(deviceId, await page.evaluate(() => window.SuktumPlatform.ready));
         return page;
       },
 

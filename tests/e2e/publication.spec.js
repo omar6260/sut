@@ -28,9 +28,9 @@ test.describe('Publication', () => {
     await expect(a.locator('#screen-feed')).toHaveClass(/active/);
     expect(suktum.lastToast(a)).toBe('Publié ⛵');
 
-    const postKeys = suktum.storage.list(null, 'post:', true).keys;
+    const postKeys = (await suktum.storage.list(null, 'post:', true)).keys;
     expect(postKeys).toHaveLength(1);
-    const post = suktum.storage.readJSON(postKeys[0]);
+    const post = (await suktum.storage.readJSON(postKeys[0]));
     expect(post).toMatchObject({ userId: 'Awa_Dakar', type: 'image', caption: 'Ma pirogue au soleil #teranga', status: 'published', likes: [], comments: [] });
     expect(post.data).toMatch(/^data:image\//);
 
@@ -48,7 +48,7 @@ test.describe('Publication', () => {
     // notifications — voir a-traiter.md ; on déclenche le clic sur le bouton lui-même.)
     await card.locator('button[onclick^="toggleLike"]').dispatchEvent('click');
     await expect(b.locator(`.feed-card[data-post-id="${post.id}"] button[onclick^="toggleLike"]`)).toContainText('❤️');
-    expect(suktum.storage.readJSON(`post:${post.id}`).likes).toEqual(['Moussa_Thies']);
+    expect((await suktum.storage.readJSON(`post:${post.id}`)).likes).toEqual(['Moussa_Thies']);
 
     // B commente.
     await b.locator(`.feed-card[data-post-id="${post.id}"] button[onclick^="openCommentsScreen"]`).dispatchEvent('click');
@@ -56,7 +56,7 @@ test.describe('Publication', () => {
     await b.locator('#comment-input').fill('Magnifique, bon vent !');
     await b.locator('#screen-comments button', { hasText: 'Envoyer' }).click();
     await expect(b.locator('#comments-list')).toContainText('Magnifique, bon vent !');
-    expect(suktum.storage.readJSON(`post:${post.id}`).comments).toHaveLength(1);
+    expect((await suktum.storage.readJSON(`post:${post.id}`)).comments).toHaveLength(1);
 
     // A voit les notifications.
     await a.locator('#global-notif-btn').click();
@@ -76,6 +76,6 @@ test.describe('Publication', () => {
     await a.locator('#screen-publish button[onclick="publishPost()"]').click();
     await expect(a.locator('#screen-publish')).toHaveClass(/active/);
     expect(suktum.lastToast(a)).toBe('Choisissez une vidéo ou une photo');
-    expect(suktum.storage.list(null, 'post:', true).keys).toEqual([]);
+    expect((await suktum.storage.list(null, 'post:', true)).keys).toEqual([]);
   });
 });

@@ -85,6 +85,7 @@ export async function installStorage(page, storage, deviceId) {
     }
   });
   await page.addInitScript(() => {
+    window.__SUKTUM_STORAGE_INJECTED = true; // signale à src/platform/boot.js de ne pas initialiser Firebase
     const call = (op, key, value, shared) => window.__suktumStorage(op, key, value ?? null, !!shared);
     window.storage = {
       get: (key, shared) => call('get', key, null, shared),

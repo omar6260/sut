@@ -29,9 +29,9 @@ test.describe('Boutique', () => {
     await a.locator('#seller-product-category').fill('Vêtement');
     await a.locator('#seller-product-stock').fill('3');
     await a.locator('#screen-seller-dashboard button[onclick="addSellerProduct()"]').click();
-    await expect.poll(() => suktum.storage.list(null, 'product:', true).keys.length).toBe(1);
-    const productKey = suktum.storage.list(null, 'product:', true).keys[0];
-    const product = suktum.storage.readJSON(productKey);
+    await expect.poll(async () => (await suktum.storage.list(null, 'product:', true)).keys.length).toBe(1);
+    const productKey = (await suktum.storage.list(null, 'product:', true)).keys[0];
+    const product = (await suktum.storage.readJSON(productKey));
     expect(product).toMatchObject({ name: 'Robe wax', price: 15000, sellerUsername: 'Awa_Dakar', category: 'Vêtement', stock: 3, country: 'Sénégal' });
     await expect(a.locator('#seller-product-name')).toHaveValue('');
 
@@ -53,15 +53,15 @@ test.describe('Boutique', () => {
     await expect(b.locator('#screen-shop')).toHaveClass(/active/);
     expect(suktum.lastToast(b)).toMatch(/^Commande envoyée ✓ Référence : /);
 
-    const orderKeys = suktum.storage.list(null, 'order:', true).keys;
+    const orderKeys = (await suktum.storage.list(null, 'order:', true)).keys;
     expect(orderKeys).toHaveLength(1);
-    const order = suktum.storage.readJSON(orderKeys[0]);
+    const order = (await suktum.storage.readJSON(orderKeys[0]));
     expect(order).toMatchObject({
       productId: product.id, productName: 'Robe wax', quantity: 2, unitPrice: 15000, total: 30000,
       buyerUsername: 'Moussa_Thies', buyerName: 'Moussa Ndiaye', sellerUsername: 'Awa_Dakar', status: 'pending',
     });
     expect(order.netAmount + order.commissionAmount).toBe(order.total);
-    expect(suktum.storage.readJSON(productKey).stock).toBe(1);
+    expect((await suktum.storage.readJSON(productKey)).stock).toBe(1);
 
     // Côté B : « Mes commandes ».
     await b.locator('#screen-shop [onclick="go(\'my-orders\')"]').click();
@@ -88,6 +88,6 @@ test.describe('Boutique', () => {
     await a.locator('#seller-product-name').fill('Sans prix');
     await a.locator('#screen-seller-dashboard button[onclick="addSellerProduct()"]').click();
     await expect.poll(() => suktum.lastToast(a)).toBe('Renseignez au moins le nom et un prix valide');
-    expect(suktum.storage.list(null, 'product:', true).keys).toEqual([]);
+    expect((await suktum.storage.list(null, 'product:', true)).keys).toEqual([]);
   });
 });
