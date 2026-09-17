@@ -17,6 +17,12 @@
     if (fb.storage) fb.storage().useEmulator('localhost', 9199);
   }
   PLATFORM.env = { local, projectId: cfg.projectId };
+  // Identifiant d'appareil (navigateur) : l'espace privé est PAR APPAREIL, comme `shared=false` dans le prototype.
+  // Sans lui, deux appareils reliés au même compte Google partageraient `settings:username` et contourneraient le PIN.
+  let deviceId = null;
+  try { deviceId = localStorage.getItem('suktum_device'); if (!deviceId) { deviceId = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10); localStorage.setItem('suktum_device', deviceId); } }
+  catch { deviceId = 'dev_session_' + Math.random().toString(36).slice(2, 10); }
+  PLATFORM.deviceId = deviceId;
 
   let uid = null;
   const ready = new Promise((resolve, reject) => {
@@ -34,6 +40,6 @@
   PLATFORM.db = db;
   PLATFORM.ready = ready;
   PLATFORM.getUid = () => uid;
-  window.storage = PLATFORM.createStorageAdapter({ db, getUid: () => uid, ready, FieldValue: fb.firestore.FieldValue });
+  window.storage = PLATFORM.createStorageAdapter({ db, getUid: () => uid, deviceId, ready, FieldValue: fb.firestore.FieldValue });
   ready.catch((e) => console.error('[SuktumPlatform] authentification impossible :', e));
 })();

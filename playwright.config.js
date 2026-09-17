@@ -8,8 +8,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
-  timeout: 30_000,
-  expect: { timeout: 5_000 },
+  // Backend Firebase : les cold starts de l'émulateur Functions (plusieurs appels enchaînés) demandent des délais plus longs.
+  timeout: process.env.SUKTUM_BACKEND === 'firebase' ? 90_000 : 30_000,
+  expect: { timeout: process.env.SUKTUM_BACKEND === 'firebase' ? 15_000 : 5_000 },
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:5173',

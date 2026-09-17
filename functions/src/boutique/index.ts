@@ -239,7 +239,9 @@ export const createOrder = onCall({ region: REGION }, async (req) => {
       const p = await kvGet<Promo>(`promocode:${product.sellerUsername}__${code}`, tx);
       if (promoIsValid(p)) { promo = p; appliedPromoCodeForOrder = code; } else warnings.push('Le code promo n’est plus valide — non appliqué');
     }
-    const loyaltyPoints = a.useLoyaltyPoints ? (Number(await kvGet<number>(`loyaltypoints:${a.currentUser}`, tx)) || 0) : 0;
+    // Lecture systématique AVANT toute écriture (contrainte des transactions Firestore) ; utilisée seulement si demandé.
+    const currentLoyalty = Number(await kvGet<number>(`loyaltypoints:${a.currentUser}`, tx)) || 0;
+    const loyaltyPoints = a.useLoyaltyPoints ? currentLoyalty : 0;
     const commissionRate = await numSetting('commission_rate', DEFAULT_COMMISSION_RATE, tx);
     const m = computeOrderAmounts({ unitPrice, quantity: qty, promo, loyaltyPoints, useLoyalty: a.useLoyaltyPoints, commissionRate });
     const bigOrderThreshold = await numSetting('bigOrderThreshold', DEFAULT_BIG_ORDER_THRESHOLD, tx);
@@ -273,8 +275,7 @@ export const createOrder = onCall({ region: REGION }, async (req) => {
     }
     // fidélité (l. 27269-27276) : débit des points utilisés puis crédit des points gagnés, en une seule écriture atomique
     if (m.pointsUsed > 0 || m.earnedPoints > 0) {
-      const current = a.useLoyaltyPoints ? loyaltyPoints : (Number(await kvGet<number>(`loyaltypoints:${a.currentUser}`, tx)) || 0);
-      kvSet(`loyaltypoints:${a.currentUser}`, Math.max(0, current - m.pointsUsed) + m.earnedPoints, tx, uid);
+      kvSet(`loyaltypoints:${a.currentUser}`, Math.max(0, currentLoyalty - m.pointsUsed) + m.earnedPoints, tx, uid);
       touched.push(`loyaltypoints:${a.currentUser}`);
     }
     if (stockManaged) { // l. 27279-27290

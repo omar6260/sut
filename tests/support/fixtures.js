@@ -54,7 +54,11 @@ export const test = base.extend({
           });
         });
         await page.goto('/');
-        if (BACKEND === 'firebase') storage.registerDevice(deviceId, await page.evaluate(() => window.SuktumPlatform.ready));
+        if (BACKEND === 'firebase') {
+          const uid = await page.evaluate(() => window.SuktumPlatform.ready);
+          storage.registerDevice(deviceId, uid, await page.evaluate(() => window.SuktumPlatform.deviceId));
+          await page.evaluate(() => window.SuktumPlatform.identityReady); // fin d'initIdentity() : évite les courses avec le démarrage
+        }
         return page;
       },
 
@@ -86,6 +90,7 @@ export const test = base.extend({
       /** Recharge la page d'un appareil en conservant son espace privé. */
       async reload(page) {
         await page.reload();
+        if (BACKEND === 'firebase') await page.evaluate(() => window.SuktumPlatform.identityReady);
         return page;
       },
 

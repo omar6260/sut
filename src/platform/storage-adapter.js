@@ -9,8 +9,9 @@
   const MAX_VALUE_BYTES = 900 * 1024;
   const CACHE_TTL_MS = 10 * 1000;
 
-  PLATFORM.createStorageAdapter = function createStorageAdapter({ db, getUid, ready, FieldValue }) {
-    const { pathFor, decodeId, splitKey } = PLATFORM.keys;
+  PLATFORM.createStorageAdapter = function createStorageAdapter({ db, getUid, deviceId, ready, FieldValue }) {
+    const { decodeId, splitKey, privateKeyOf } = PLATFORM.keys;
+    const pathFor = (key, shared, uid) => PLATFORM.keys.pathFor(key, shared, uid, deviceId);
     const stats = (PLATFORM.stats = PLATFORM.stats || { reads: 0, writes: 0, deletes: 0, cacheHits: 0, byPrefix: {} });
     const count = (kind, prefix, n = 1) => { stats[kind] += n; const p = (stats.byPrefix[prefix] = stats.byPrefix[prefix] || { reads: 0, writes: 0, deletes: 0, cacheHits: 0 }); p[kind] += n; };
     const cache = new Map(); // cacheKey → { value: string|null, at: ms }
@@ -85,7 +86,8 @@
       count('reads', coll, Math.max(1, snap.size));
       const keys = [];
       snap.forEach((d) => {
-        const key = shared ? `${coll}:${decodeId(d.id)}` : decodeId(d.id);
+        const key = shared ? `${coll}:${decodeId(d.id)}` : privateKeyOf(d.id, deviceId);
+        if (key === null) return;
         keys.push(key);
         remember(key, !!shared, JSON.stringify(d.data().data)); // cache anti N+1 : les get suivants ne relisent pas
       });

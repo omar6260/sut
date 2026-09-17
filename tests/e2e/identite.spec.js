@@ -44,6 +44,7 @@ test.describe('Identité', () => {
   });
 
   test('code de sécurité (PIN) : activé côté serveur, exigé à la récupération sur un nouvel appareil, 5 essais max', async ({ suktum }) => {
+    test.setTimeout(90_000); // 5 tentatives serveur + 2 appareils
     const a = await suktum.openDevice('A');
     await suktum.signUp(a, 'Awa_Dakar');
     await suktum.googleSignIn(a, { sub: 'google-awa', email: 'awa@example.com' });
@@ -53,7 +54,7 @@ test.describe('Identité', () => {
     const b = await suktum.openDevice('B');
     await suktum.googleSignIn(b, { sub: 'google-awa', email: 'awa@example.com' });
     await b.locator('#google-recovery-btn').click();
-    await expect(b.locator('#screen-pin-verify')).toHaveClass(/active/);
+    await expect(b.locator('#screen-pin-verify')).toHaveClass(/active/, { timeout: 20_000 });
     for (const wrong of ['0000', '1111', '2222', '3333', '5555']) {
       await b.locator('#pin-login-input').fill(wrong);
       await b.locator('#screen-pin-verify button[onclick="submitPinVerification()"]').click();
@@ -61,7 +62,7 @@ test.describe('Identité', () => {
     }
     await b.locator('#pin-login-input').fill('4321');
     await b.locator('#screen-pin-verify button[onclick="submitPinVerification()"]').click();
-    await expect.poll(() => suktum.lastToast(b)).toContain('Trop de tentatives');
-    await expect(b.locator('#screen-pin-verify')).toHaveClass(/active/);
+    await expect.poll(() => suktum.lastToast(b), { timeout: 15_000 }).toContain('Trop de tentatives');
+    await expect(b.locator('#screen-pin-verify')).toHaveClass(/active/, { timeout: 20_000 });
   });
 });

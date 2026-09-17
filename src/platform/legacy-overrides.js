@@ -4,7 +4,9 @@
   const P = window.SuktumPlatform;
   if (window.__SUKTUM_STORAGE_INJECTED || !P || !P.authApi || !P.env) return; // pas de plateforme (tests mémoire) → legacy intact
   const A = P.authApi;
-  const original = { completeOnboarding: window.completeOnboarding, logInAsExistingUser: window.logInAsExistingUser };
+  const original = { completeOnboarding: window.completeOnboarding, logInAsExistingUser: window.logInAsExistingUser, initIdentity: window.initIdentity };
+  // Fin du démarrage observable (tests, et plus tard indicateur de chargement) : P.identityReady.
+  window.initIdentity = function () { const r = original.initIdentity.apply(this, arguments); P.identityReady = Promise.resolve(r).catch(() => {}); return r; };
   let pendingLogin = null; // { existing, name, country, requiresPin, requiresTotp }
 
   // ---- Inscription / connexion par nom d'utilisateur (D1) ----

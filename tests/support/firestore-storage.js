@@ -26,8 +26,8 @@ export async function clearEmulator() {
 }
 
 export class FirestoreStorage {
-  constructor() { this.uids = new Map(); } // deviceId → uid (rempli par la fixture après l'auth anonyme)
-  registerDevice(deviceId, uid) { this.uids.set(deviceId, uid); }
+  constructor() { this.uids = new Map(); this.devices = new Map(); } // appareil de test → uid / deviceId navigateur
+  registerDevice(deviceId, uid, browserDeviceId) { this.uids.set(deviceId, uid); this.devices.set(deviceId, browserDeviceId); }
   uidOf(deviceId) { return this.uids.get(deviceId); }
   /** Pose des custom claims sur le compte d'un appareil (ex. { superadmin: true }) — action réservée au serveur. */
   async setClaims(deviceId, claims) {
@@ -41,7 +41,7 @@ export class FirestoreStorage {
   #path(key, shared, deviceId) {
     const uid = shared ? null : this.uids.get(deviceId);
     if (!shared && !uid) throw new Error(`FirestoreStorage : uid inconnu pour l'appareil "${deviceId}"`);
-    return keys.pathFor(key, !!shared, uid);
+    return keys.pathFor(key, !!shared, uid, this.devices.get(deviceId));
   }
   async readJSON(key, shared = true, deviceId = null) {
     const { collection, docId } = this.#path(key, shared, deviceId);
@@ -57,11 +57,11 @@ export class FirestoreStorage {
   async list(deviceId, prefix = '', shared = true) {
     const { prefix: p, id } = keys.splitKey(prefix.includes(':') ? prefix : prefix + ':');
     let q = shared ? db().collection(`kv_${p}`) : db().collection(`users/${this.uids.get(deviceId)}/private`);
-    const raw = shared ? id : prefix;
+    const raw = shared ? id : `${this.devices.get(deviceId) || 'default'}|${prefix}`;
     const start = raw ? keys.encodeId(raw) : '';
     if (start) q = q.where(FieldPath.documentId(), '>=', start).where(FieldPath.documentId(), '<', start + '');
     const snap = await q.get();
-    const out = snap.docs.map((d) => (shared ? `${p}:${keys.decodeId(d.id)}` : keys.decodeId(d.id))).sort();
+    const out = snap.docs.map((d) => (shared ? `${p}:${keys.decodeId(d.id)}` : keys.privateKeyOf(d.id, this.devices.get(deviceId)))).filter(Boolean).sort();
     return { keys: out, prefix, shared: !!shared };
   }
 }

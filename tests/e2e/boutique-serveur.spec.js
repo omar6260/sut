@@ -6,7 +6,7 @@ import { test, expect, BACKEND } from '../support/fixtures.js';
 test.skip(BACKEND !== 'firebase', 'logique serveur = backend firebase');
 
 const api = (page, name, data) => page.evaluate(async ({ name, data }) => {
-  try { return { ok: true, result: await window.SuktumPlatform.api.call(name, Object.assign({ currentUser: window.currentUser }, data)) }; }
+  try { return { ok: true, result: await window.SuktumPlatform.api.call(name, Object.assign({ currentUser: typeof currentUser !== 'undefined' ? currentUser : null }, data)) }; }
   catch (e) { return { ok: false, code: e.code, message: e.message }; }
 }, { name, data });
 
@@ -141,7 +141,7 @@ test.describe('Boutique — logique serveur', () => {
     const { a, b } = await twoAccounts(suktum);
     const product = await publishProduct(suktum, a, { name: 'Tableau', price: 10000, stock: 1 });
     await suktum.storage.writeJSON(`product:${product.id}`, { ...product, isAuction: true, auctionCurrentBid: 10000, auctionHighestBidder: null, auctionEndTime: new Date(Date.now() + 60 * 60 * 1000).toISOString() });
-    expect(await api(b, 'placeBid', { productId: product.id, amount: 10000 })).toMatchObject({ ok: false, message: 'Votre mise doit être d’au moins 10 001 FCFA' });
+    expect(await api(b, 'placeBid', { productId: product.id, amount: 10000 })).toMatchObject({ ok: false, message: expect.stringMatching(/au moins 10.001 FCFA/) });
     expect(await api(a, 'placeBid', { productId: product.id, amount: 12000 })).toMatchObject({ ok: false, message: 'Vous ne pouvez pas enchérir sur votre propre produit' });
     expect(await api(b, 'placeBid', { productId: product.id, amount: 12000 })).toMatchObject({ ok: true });
     expect(await suktum.storage.readJSON(`product:${product.id}`)).toMatchObject({ auctionCurrentBid: 12000, auctionHighestBidder: 'Moussa_Thies' });

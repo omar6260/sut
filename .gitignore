@@ -16,3 +16,6 @@ blob-report/
 
 # Config Firebase locale (jamais versionnée)
 src/platform/firebase-config.local.js
+
+# Worktrees des agents
+.claude/worktrees/

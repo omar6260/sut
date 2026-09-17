@@ -27,13 +27,14 @@
   }
 
   // Chemin Firestore d'une clé. `privateUid` : uid du propriétaire pour l'espace privé (shared = false).
-  function pathFor(key, shared, privateUid) {
+  // `deviceId` : l'espace privé est par (utilisateur, appareil) — ID = encode('<deviceId>|<clé>').
+  function pathFor(key, shared, privateUid, deviceId) {
     const { prefix, id } = splitKey(key);
     if (shared) return { collection: `kv_${prefix}`, docId: encodeId(id), prefix, id };
     if (!privateUid) throw new Error('storage : espace privé sans utilisateur');
-    // Espace privé : un seul niveau, la clé entière encodée (réversible, conforme à ARCHITECTURE-CIBLE).
-    return { collection: `users/${privateUid}/private`, docId: encodeId(key), prefix, id };
+    return { collection: `users/${privateUid}/private`, docId: encodeId((deviceId || 'default') + '|' + key), prefix, id };
   }
+  const privateKeyOf = (docId, deviceId) => { const raw = decodeId(docId); const head = (deviceId || 'default') + '|'; return raw.startsWith(head) ? raw.slice(head.length) : null; };
 
-  PLATFORM.keys = { splitKey, encodeId, decodeId, pathFor };
+  PLATFORM.keys = { splitKey, encodeId, decodeId, pathFor, privateKeyOf };
 })();

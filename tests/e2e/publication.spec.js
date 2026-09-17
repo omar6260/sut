@@ -48,7 +48,7 @@ test.describe('Publication', () => {
     // notifications — voir a-traiter.md ; on déclenche le clic sur le bouton lui-même.)
     await card.locator('button[onclick^="toggleLike"]').dispatchEvent('click');
     await expect(b.locator(`.feed-card[data-post-id="${post.id}"] button[onclick^="toggleLike"]`)).toContainText('❤️');
-    expect((await suktum.storage.readJSON(`post:${post.id}`)).likes).toEqual(['Moussa_Thies']);
+    await expect.poll(async () => (await suktum.storage.readJSON(`post:${post.id}`)).likes, { timeout: 15_000 }).toEqual(['Moussa_Thies']);
 
     // B commente.
     await b.locator(`.feed-card[data-post-id="${post.id}"] button[onclick^="openCommentsScreen"]`).dispatchEvent('click');
@@ -56,7 +56,7 @@ test.describe('Publication', () => {
     await b.locator('#comment-input').fill('Magnifique, bon vent !');
     await b.locator('#screen-comments button', { hasText: 'Envoyer' }).click();
     await expect(b.locator('#comments-list')).toContainText('Magnifique, bon vent !');
-    expect((await suktum.storage.readJSON(`post:${post.id}`)).comments).toHaveLength(1);
+    await expect.poll(async () => (await suktum.storage.readJSON(`post:${post.id}`)).comments.length, { timeout: 15_000 }).toBe(1);
 
     // A voit les notifications.
     await a.locator('#global-notif-btn').click();

@@ -17,7 +17,7 @@ let env, storageA, storageB;
 before(async () => {
   env = await initializeTestEnvironment({ projectId: 'suktum-dev', firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: 'localhost', port: 8080 } });
   await env.clearFirestore();
-  const make = (uid) => PLATFORM.createStorageAdapter({ db: env.authenticatedContext(uid).firestore(), getUid: () => uid, ready: Promise.resolve(uid), FieldValue: firebase.firestore.FieldValue });
+  const make = (uid) => PLATFORM.createStorageAdapter({ db: env.authenticatedContext(uid).firestore(), getUid: () => uid, deviceId: 'dev_' + uid, ready: Promise.resolve(uid), FieldValue: firebase.firestore.FieldValue });
   storageA = make('uidA'); storageB = make('uidB');
 });
 after(async () => { await env?.cleanup(); });
