@@ -24,11 +24,10 @@ test('lectures Firestore par écran', async ({ suktum }, testInfo) => {
   rows.push(await measure('fil (go feed)', async () => { await a.evaluate(() => go('feed')); }));
   rows.push(await measure('profil', async () => { await a.locator('.tab[data-screen="profile"]').click(); }));
   rows.push(await measure('liste des cours', async () => { await a.evaluate(() => { enterEducationSpaceNormally(); }); await a.evaluate(() => go('education-courses')); }));
-  rows.push(await measure('back-office (création mot de passe)', async () => {
+  await suktum.grantRole(a, { superadmin: true, adminName: 'Gorgui' });
+  rows.push(await measure('back-office (connexion)', async () => {
     await a.locator('.tab[data-screen="profile"]').click();
     for (let i = 0; i < 5; i++) await a.locator('#profile-avatar').click();
-    await a.locator('#admin-pin-input').fill('Pirogue#2026');
-    await a.locator('#screen-admin-login button[onclick="checkAdminPin()"]').click();
     await expect(a.locator('#screen-admin')).toHaveClass(/active/);
   }));
   const byPrefix = await a.evaluate(() => Object.entries(window.SuktumPlatform.stats.byPrefix).sort((x, y) => y[1].reads - x[1].reads).slice(0, 8).map(([p, s]) => `${p}=${s.reads}`).join(', '));

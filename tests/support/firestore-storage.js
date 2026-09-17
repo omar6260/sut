@@ -28,6 +28,16 @@ export async function clearEmulator() {
 export class FirestoreStorage {
   constructor() { this.uids = new Map(); } // deviceId → uid (rempli par la fixture après l'auth anonyme)
   registerDevice(deviceId, uid) { this.uids.set(deviceId, uid); }
+  uidOf(deviceId) { return this.uids.get(deviceId); }
+  /** Pose des custom claims sur le compte d'un appareil (ex. { superadmin: true }) — action réservée au serveur. */
+  async setClaims(deviceId, claims) {
+    // API REST de l'émulateur Auth (évite d'importer firebase-admin/auth dans le processus Playwright).
+    const res = await fetch(`http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/accounts:update`, {
+      method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ localId: this.uids.get(deviceId), customAttributes: JSON.stringify(claims) }),
+    });
+    if (!res.ok) throw new Error(`setClaims : ${res.status} ${await res.text()}`);
+  }
   #path(key, shared, deviceId) {
     const uid = shared ? null : this.uids.get(deviceId);
     if (!shared && !uid) throw new Error(`FirestoreStorage : uid inconnu pour l'appareil "${deviceId}"`);

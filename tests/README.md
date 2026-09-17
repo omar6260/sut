@@ -43,7 +43,8 @@ Chaque test part d'un stockage vide. Les tests sont indépendants et parallélis
 | `messagerie.spec` | A trouve B par la recherche, ouvre son profil, lui écrit ; B voit la conversation et le message, répond ; notification chez B. Liste vide sans conversation. |
 | `boutique.spec` | A publie un produit (nom, prix, catégorie, stock) ; B le voit, commande 2 unités (nom, téléphone, adresse) ; commande `pending`, stock décrémenté, commission + net = total ; visible dans « Mes commandes » (B) et le tableau de bord vendeur « En attente » (A). Produit sans prix refusé. |
 | `education.spec` | L'entrée dans l'Espace Éducation démarre l'essai gratuit de 7 jours ; le formateur crée un cours (`pending_review`) puis une leçon ; l'élève trouve le cours, s'inscrit gratuitement pendant l'essai (`enrollment` approuvée, `trialEnrollment`), voit la leçon. |
-| `backoffice.spec` | 5 taps sur l'avatar ouvrent la connexion admin (4 ne font rien) ; première visite = création d'un mot de passe blindé (faible refusé) ; connexion avec le bon mot de passe, refus du mauvais ; vue d'ensemble avec compteurs cohérents. |
+| `backoffice.spec` (firebase) | 5 taps sans rôle → refus ; avec claim `superadmin`/`moderator` (posé côté serveur) → back-office, périmètre et compteurs cohérents ; aucun mot de passe côté client. |
+| `identite.spec` (firebase) | Nom réservé côté serveur ; un autre appareil ne peut pas l'utiliser ; « Continuer avec Google » retrouve le compte ; claim `familyMode` 13–17 ; PIN serveur avec limitation 5 essais. |
 
 ## Écarts assumés (à connaître avant de modifier un test)
 
