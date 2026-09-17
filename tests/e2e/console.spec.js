@@ -8,7 +8,7 @@ test.describe('Chargement', () => {
     await expect(page.locator('#screen-onboarding')).toHaveClass(/active/);
     await expect(page.locator('#onboard-username')).toBeVisible();
     // Le stockage simulé répond : la langue/thème ont été lus sans lever d'erreur.
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     expect(suktum.errors, 'erreurs JavaScript (pageerror)').toEqual([]);
   });
 

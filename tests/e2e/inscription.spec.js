@@ -8,8 +8,8 @@ test.describe('Inscription', () => {
     await suktum.signUp(page, 'Awa_Dakar');
 
     // Le compte est bien enregistré dans l'espace partagé, la session dans l'espace privé.
-    expect(suktum.storage.readJSON('user:Awa_Dakar')).toMatchObject({ username: 'Awa_Dakar', country: 'Sénégal', status: 'active', isMinor: false });
-    expect(suktum.storage.readJSON('settings:username', false, 'A')).toBe('Awa_Dakar');
+    expect((await suktum.storage.readJSON('user:Awa_Dakar'))).toMatchObject({ username: 'Awa_Dakar', country: 'Sénégal', status: 'active', isMinor: false });
+    expect((await suktum.storage.readJSON('settings:username', false, 'A'))).toBe('Awa_Dakar');
 
     await suktum.reload(page);
     await expect(page.locator('#screen-feed')).toHaveClass(/active/);
@@ -23,7 +23,7 @@ test.describe('Inscription', () => {
     await page.locator('#onboard-age-adult-btn').click();
     await page.locator('#screen-onboarding button', { hasText: 'Commencer' }).click();
     await expect(page.locator('#screen-onboarding')).toHaveClass(/active/);
-    expect(suktum.storage.readJSON('settings:username', false, 'A')).toBeNull();
+    expect((await suktum.storage.readJSON('settings:username', false, 'A'))).toBeNull();
   });
 
   test('deux appareils, deux comptes : les sessions privées sont isolées', async ({ suktum }) => {
@@ -31,8 +31,8 @@ test.describe('Inscription', () => {
     const b = await suktum.openDevice('B');
     await suktum.signUp(a, 'Awa_Dakar');
     await suktum.signUp(b, 'Moussa_Thies');
-    expect(suktum.storage.readJSON('settings:username', false, 'A')).toBe('Awa_Dakar');
-    expect(suktum.storage.readJSON('settings:username', false, 'B')).toBe('Moussa_Thies');
-    expect(suktum.storage.list(null, 'user:', true).keys).toEqual(['user:Awa_Dakar', 'user:Moussa_Thies']);
+    expect((await suktum.storage.readJSON('settings:username', false, 'A'))).toBe('Awa_Dakar');
+    expect((await suktum.storage.readJSON('settings:username', false, 'B'))).toBe('Moussa_Thies');
+    expect((await suktum.storage.list(null, 'user:', true)).keys).toEqual(['user:Awa_Dakar', 'user:Moussa_Thies']);
   });
 });

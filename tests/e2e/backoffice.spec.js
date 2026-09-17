@@ -32,14 +32,14 @@ test.describe('Back-office', () => {
     await a.locator('#admin-pin-input').fill('faible');
     await a.locator('#screen-admin-login button[onclick="checkAdminPin()"]').click();
     await expect.poll(() => suktum.lastToast(a)).toBe('Le mot de passe ne respecte pas encore toutes les règles');
-    expect(suktum.storage.readJSON('settings:adminpin_hash')).toBeNull();
+    expect((await suktum.storage.readJSON('settings:adminpin_hash'))).toBeNull();
 
     // Mot de passe blindé accepté → back-office.
     await a.locator('#admin-pin-input').fill(ADMIN_PASSWORD);
     await a.locator('#screen-admin-login button[onclick="checkAdminPin()"]').click();
     await expect(a.locator('#screen-admin')).toHaveClass(/active/);
     expect(suktum.lastToast(a)).toBe('Mot de passe créé ✓');
-    expect(suktum.storage.readJSON('settings:adminpin_hash')).toBe(sha256(ADMIN_PASSWORD));
+    expect((await suktum.storage.readJSON('settings:adminpin_hash'))).toBe(sha256(ADMIN_PASSWORD));
 
     // Vue d'ensemble : compteurs cohérents avec l'état.
     await expect(a.locator('#admin-stat-users')).toHaveText('1');
@@ -51,7 +51,7 @@ test.describe('Back-office', () => {
   });
 
   test('connexion avec le mot de passe existant ; mauvais mot de passe refusé', async ({ suktum }) => {
-    suktum.storage.writeJSON('settings:adminpin_hash', sha256(ADMIN_PASSWORD));
+    await suktum.storage.writeJSON('settings:adminpin_hash', sha256(ADMIN_PASSWORD));
     const a = await suktum.openDevice('A');
     await suktum.signUp(a, 'Gorgui_Faye');
     await suktum.dismissTour(a);

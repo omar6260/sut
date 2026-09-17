@@ -1,0 +1,33 @@
+rules_version = '2';
+// GÉNÉRÉ par scripts/generate-rules.mjs (phase 04) depuis docs/inventaire/classification.md — ne pas éditer à la main.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function authed() { return request.auth != null; }
+    function isOwner() { return resource != null && resource.data.owner == request.auth.uid; }
+    function ownerUnchanged() { return !('owner' in request.resource.data) || ('owner' in resource.data && request.resource.data.owner == resource.data.owner); }
+    function isPrivate(c) { return c in ['kv_activitylog', 'kv_adclickattribution', 'kv_adseenby', 'kv_cart', 'kv_commentdraft', 'kv_coursechatnotifypref', 'kv_coursegoal', 'kv_coursegroupchatnotifypref', 'kv_customtheme', 'kv_descriptiontemplate', 'kv_dndsettings', 'kv_draftcaption', 'kv_edustreak', 'kv_favoriteassignments', 'kv_favoritefolders', 'kv_followersnapshot', 'kv_lessontemplate', 'kv_livenotifypref', 'kv_monthlysellerreport', 'kv_note', 'kv_notinterested', 'kv_pinnedcontacts', 'kv_postnotifypref', 'kv_quickreplies', 'kv_quickscroll', 'kv_recentlyviewed', 'kv_recurringreminder', 'kv_rewatch', 'kv_salesgoal', 'kv_screentimetoday', 'kv_searchhistory', 'kv_sellercoachreport', 'kv_seriesprogress', 'kv_shareSignal', 'kv_teachingimage', 'kv_topicpreferences', 'kv_videodraft', 'kv_vocabnotebook', 'kv_watchhistory', 'kv_watchposition', 'kv_weathercheck', 'kv_wishlist']; }
+    function isReadOnly(c) { return c in []; }
+    function isKv(c) { return c.matches('kv_.*') && c != 'kv_settings'; }
+
+    // Espace privé (shared = false dans le legacy) : le propriétaire seul.
+    match /users/{uid}/private/{doc} {
+      allow read, write: if authed() && request.auth.uid == uid;
+    }
+
+    // Réglages partagés : lecture par tous les authentifiés ; secrets et rôles en lecture seule côté client.
+    match /kv_settings/{id} {
+      allow read: if authed();
+      allow create: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']) && request.resource.data.owner == request.auth.uid;
+      allow update: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']) && ownerUnchanged();
+      allow delete: if authed() && !(id in ['geminiApiKey', 'gcvVisionKey', 'gcvVideoKey', 'google_vision_api_key', 'google_video_api_key', 'weatherApiKey', 'yangoApiKey', 'governanceAIProvider', 'admin_backup_codes', 'moderators', 'regionaladmins', 'payoutspecialists', 'customroles', 'techteammembers']);
+    }
+
+    // Collections kv_<prefixe> (shared = true dans le legacy).
+    match /{collection}/{id} {
+      allow read: if authed() && isKv(collection) && (!isPrivate(collection) || isOwner());
+      allow create: if authed() && isKv(collection) && !isReadOnly(collection) && request.resource.data.owner == request.auth.uid;
+      allow update: if authed() && isKv(collection) && !isReadOnly(collection) && ownerUnchanged() && (!isPrivate(collection) || isOwner());
+      allow delete: if authed() && isKv(collection) && !isReadOnly(collection) && (!isPrivate(collection) || isOwner());
+    }
+  }
+}

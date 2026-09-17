@@ -27,7 +27,7 @@ test.describe('Messagerie', () => {
     await expect(a.locator('#thread-messages')).toContainText('Salut Moussa, on se voit au marché ?');
     await expect(a.locator('#thread-input')).toHaveValue('');
 
-    const dm = suktum.storage.readJSON('dm:Awa_Dakar__Moussa_Thies');
+    const dm = (await suktum.storage.readJSON('dm:Awa_Dakar__Moussa_Thies'));
     expect(dm).toHaveLength(1);
     expect(dm[0]).toMatchObject({ from: 'Awa_Dakar', text: 'Salut Moussa, on se voit au marché ?' });
 
@@ -44,7 +44,7 @@ test.describe('Messagerie', () => {
     await b.locator('#thread-input').fill('Oui, à 10h !');
     await b.locator('#screen-thread button[onclick="sendThreadMessage()"]').click();
     await expect(b.locator('#thread-messages')).toContainText('Oui, à 10h !');
-    expect(suktum.storage.readJSON('dm:Awa_Dakar__Moussa_Thies')).toHaveLength(2);
+    expect((await suktum.storage.readJSON('dm:Awa_Dakar__Moussa_Thies'))).toHaveLength(2);
 
     // Notification côté B.
     await b.locator('#global-notif-btn').click();

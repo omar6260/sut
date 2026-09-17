@@ -29,6 +29,10 @@ Le prototype attend `window.storage` (fourni par l'environnement Claude) et appe
 
 Chaque test part d'un stockage vide. Les tests sont indépendants et parallélisables.
 
+## Deux backends
+
+`npm run test:e2e` : stockage en mémoire injecté (rapide, parallèle). `npm run test:e2e:firebase` : l'application charge son vrai adaptateur (`src/platform/`) sur l'émulateur Firestore, 1 worker, émulateur vidé avant chaque test ; la fixture lit/écrit via `firebase-admin` (`tests/support/firestore-storage.js`). Même API dans les deux cas — les appels `suktum.storage.*` sont asynchrones.
+
 ## Ce que chaque parcours garantit
 
 | Fichier | Garantie |
