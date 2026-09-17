@@ -642,17 +642,8 @@ async function renderSellerDashboard(){
 /* ---------- NOTATION VENDEUR + BADGE "VENDEUR RECOMMANDÉ" ---------- */
 /* ---------- NOTATION DE L'ACHETEUR PAR LE VENDEUR ---------- */
 async function rateBuyerForOrder(orderId, stars){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o || o.sellerUsername !== currentUser || o.shipmentStage !== 'delivered') return;
-  const existing = await safeGet('buyerrating:' + orderId, true);
-  if(existing) return;
-  await saveWithRetry('buyerrating:' + orderId, {
-    buyerUsername: o.buyerUsername, sellerUsername: currentUser, stars, orderId,
-    createdAt: new Date().toISOString()
-  }, true);
-  showToast('Merci pour votre note ⭐');
-  await checkReliableBuyerBadge(o.buyerUsername);
-  await renderSellerDashboard();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function fetchBuyerRatings(buyerUsername){
   const keys = await safeList('buyerrating:', true);
@@ -661,20 +652,8 @@ async function fetchBuyerRatings(buyerUsername){
   return ratings;
 }
 async function checkReliableBuyerBadge(buyerUsername){
-  const ratings = await fetchBuyerRatings(buyerUsername);
-  if(ratings.length < 5) return;
-  const avgStars = ratings.reduce((s,r) => s + r.stars, 0) / ratings.length;
-  const qualifies = avgStars >= 4;
-  const u = await safeGet('user:' + buyerUsername, true);
-  if(!u) return;
-  if(qualifies && !u.reliableBuyer){
-    u.reliableBuyer = true;
-    await saveWithRetry('user:' + buyerUsername, u, true);
-    await createNotification(buyerUsername, 'reliable_buyer_badge', 'Suktum', null, null);
-  } else if(!qualifies && u.reliableBuyer){
-    u.reliableBuyer = false;
-    await saveWithRetry('user:' + buyerUsername, u, true);
-  }
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function rateSeries(seriesId, stars){
   const progress = await safeGet('seriesprogress:' + seriesId + '__' + currentUser, false).catch(() => null);
@@ -698,20 +677,8 @@ async function fetchSeriesRatings(seriesId){
   return ratings;
 }
 async function rateSellerForOrder(orderId, stars){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o || o.buyerUsername !== currentUser || o.shipmentStage !== 'delivered') return;
-  const existing = await safeGet('sellerrating:' + orderId, true);
-  if(existing) return;
-  const comment = prompt('Un commentaire à ajouter sur ce vendeur ? (facultatif, laissez vide pour passer)');
-  await saveWithRetry('sellerrating:' + orderId, {
-    sellerUsername: o.sellerUsername, buyerUsername: currentUser, stars, orderId,
-    comment: (comment && comment.trim()) ? comment.trim() : null,
-    shippingDays: (o.deliveredAt && o.createdAt) ? Math.max(0, (new Date(o.deliveredAt) - new Date(o.createdAt)) / (24*60*60*1000)) : null,
-    createdAt: new Date().toISOString()
-  }, true);
-  showToast('Merci pour votre note ⭐');
-  await checkRecommendedSellerBadge(o.sellerUsername);
-  await renderMyOrdersScreen();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function fetchSellerRatings(sellerUsername){
   const keys = await safeList('sellerrating:', true);
@@ -1097,22 +1064,8 @@ async function checkActiveMemberBadge(username){
   }
 }
 async function checkRecommendedSellerBadge(sellerUsername){
-  const ratings = await fetchSellerRatings(sellerUsername);
-  if(ratings.length < 5) return; // pas assez d'avis pour juger équitablement
-  const avgStars = ratings.reduce((s,r) => s + r.stars, 0) / ratings.length;
-  const speedRatings = ratings.filter(r => r.shippingDays !== null);
-  const avgSpeed = speedRatings.length > 0 ? speedRatings.reduce((s,r) => s + r.shippingDays, 0) / speedRatings.length : null;
-  const qualifies = avgStars >= 4 && (avgSpeed === null || avgSpeed <= 5);
-  const u = await safeGet('user:' + sellerUsername, true);
-  if(!u) return;
-  if(qualifies && !u.recommendedSeller){
-    u.recommendedSeller = true;
-    await saveWithRetry('user:' + sellerUsername, u, true);
-    await createNotification(sellerUsername, 'recommended_seller_badge', 'Suktum', null, null);
-  } else if(!qualifies && u.recommendedSeller){
-    u.recommendedSeller = false;
-    await saveWithRetry('user:' + sellerUsername, u, true);
-  }
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function renderMyOrdersScreen(){
   const el = document.getElementById('my-orders-list');

@@ -84,21 +84,12 @@ async function isShopSubActive(sellerUsername){
   return new Date(sub.expiresAt) > new Date();
 }
 async function cancelShopSub(){
-  const sub = await safeGet('shopsubscription:' + currentUser, true);
-  if(!sub) return;
-  if(!confirm('Annuler le renouvellement de votre abonnement Boutique ? Vous garderez l’accès jusqu’au ' + new Date(sub.expiresAt).toLocaleDateString('fr-FR') + ', mais il ne sera plus renouvelé après cette date.')) return;
-  sub.cancelled = true;
-  await saveWithRetry('shopsubscription:' + currentUser, sub, true);
-  showToast('Renouvellement annulé — accès conservé jusqu’au ' + new Date(sub.expiresAt).toLocaleDateString('fr-FR'));
-  await renderMySubscriptions();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function reactivateShopSub(){
-  const sub = await safeGet('shopsubscription:' + currentUser, true);
-  if(!sub) return;
-  sub.cancelled = false;
-  await saveWithRetry('shopsubscription:' + currentUser, sub, true);
-  showToast('Renouvellement réactivé ✓');
-  await renderMySubscriptions();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function renderMySubscriptions(){
   const el = document.getElementById('my-subscriptions-list');
@@ -168,15 +159,8 @@ async function downloadSubscriptionReceipt(type){
   showToast('Partage indisponible sur cet appareil');
 }
 async function subscribeToShop(){
-  const price = await getShopSubPrice();
-  const instructions = await getPaymentInstructions(currentUserCountry);
-  const id = 'shopsubreq_' + Date.now();
-  await saveWithRetry('shopsubrequest:' + id, {
-    id, username: currentUser, country: currentUserCountry, price, status: 'pending', createdAt: new Date().toISOString()
-  }, true);
-  alert('Pour garder votre boutique visible (' + price.toLocaleString('fr-FR') + ' FCFA/mois) :\n\n' + instructions + '\n\nVotre boutique sera activée dès que votre paiement sera vérifié, et à renouveler chaque mois.');
-  showToast('Demande envoyée — en attente de validation ✓');
-  await renderSellerDashboard();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function fetchShopSubRequests(){
   const keys = await safeList('shopsubrequest:', true);
@@ -186,21 +170,12 @@ async function fetchShopSubRequests(){
   return list;
 }
 async function approveShopSubRequest(id){
-  const req = await safeGet('shopsubrequest:' + id, true);
-  if(!req) return;
-  const expiresAt = new Date(Date.now() + SHOP_SUB_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  await saveWithRetry('shopsubscription:' + req.username, { username: req.username, price: req.price, country: req.country, startedAt: new Date().toISOString(), expiresAt }, true);
-  req.status = 'approved';
-  await saveWithRetry('shopsubrequest:' + id, req, true);
-  showToast('Abonnement boutique activé ✓');
-  await createNotification(req.username, 'shopsub_approved', 'Suktum', null, '');
-  await logAdminAction('Abonnement Boutique validé', '@' + req.username + ' — ' + req.price.toLocaleString('fr-FR') + ' FCFA');
-  await loadAdminReportsList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function rejectShopSubRequest(id){
-  await window.storage.delete('shopsubrequest:' + id, true).catch(() => {});
-  showToast('Demande rejetée');
-  await loadAdminReportsList();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function saveShopSubPrice(){
   const price = parseInt(document.getElementById('shop-sub-price-input').value, 10);

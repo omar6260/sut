@@ -730,13 +730,8 @@ async function renderCommandCenter(){
     : '<div class="card" style="cursor:pointer;" onclick="go(\'recurring-tasks\')"><p style="margin:0; font-size:13px;">'+doneCount+' / '+dailyTasks.length+' tâches quotidiennes faites</p></div>';
 }
 async function checkBigOrderAlert(orderId, total, productName, buyerUsername){
-  const threshold = await getBigOrderThreshold();
-  if(total < threshold) return;
-  const id = 'importantalert_' + Date.now();
-  await saveWithRetry('importantalert:' + id, {
-    id, type: 'big_order', orderId, amount: total, productName, buyerUsername,
-    seen: false, createdAt: new Date().toISOString()
-  }, true);
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function fetchImportantAlerts(){
   const keys = await safeList('importantalert:', true);
@@ -2499,13 +2494,8 @@ async function loadOrdersAndRevenue(){
   ).join('');
 }
 async function markOrderFulfilled(id){
-  const o = await safeGet('order:' + id, true);
-  if(!o) return;
-  o.status = 'fulfilled';
-  await saveWithRetry('order:' + id, o, true);
-  showToast('Commande marquée comme traitée ✓');
-  await logAdminAction('Commande marquée traitée', o.productName + ' — @' + o.buyerUsername);
-  await loadOrdersAndRevenue();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function addProduct(){
   const name = document.getElementById('admin-product-name').value.trim();
@@ -6344,16 +6334,8 @@ async function exportSellerLedger(){
   showToast('Historique téléchargé ✓');
 }
 async function markOrderPaidOut(orderId){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o) return;
-  o.payoutStatus = 'paid';
-  o.paidOutAt = new Date().toISOString();
-  o.paidOutBy = currentUser;
-  await saveWithRetry('order:' + orderId, o, true);
-  showToast('Reversement enregistré ✓');
-  await logAdminAction('Reversement effectué', '@' + o.sellerUsername + ' — ' + (o.netAmount||0).toLocaleString('fr-FR') + ' FCFA (' + o.productName + ')');
-  if(document.getElementById('screen-payout-specialist').classList.contains('active')) await renderPayoutSpecialistList();
-  else if(currentUserDetailTarget) await openUserDetail(currentUserDetailTarget);
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function requestCoinWithdrawal(){
   const amountRaw = document.getElementById('withdrawal-amount-input').value.trim();

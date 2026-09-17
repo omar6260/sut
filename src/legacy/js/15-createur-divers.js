@@ -208,17 +208,8 @@ function renderShipmentProgressBar(stage){
     '</div>';
 }
 async function setOrderShipmentStage(orderId, stage){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o || o.sellerUsername !== currentUser) return;
-  o.shipmentStage = stage;
-  if(stage === 'delivered' && !o.deliveredAt) o.deliveredAt = new Date().toISOString();
-  await saveWithRetry('order:' + orderId, o, true);
-  showToast('Suivi mis à jour ✓');
-  await createNotification(o.buyerUsername, 'shipment_update', currentUser, orderId, o.productName + '__' + stage);
-  if(stage === 'delivered'){
-    await createNotification(o.buyerUsername, 'satisfaction_survey', currentUser, orderId, 'order');
-  }
-  await renderSellerDashboard();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 function renderShipmentStageControls(orderId, currentStage){
   const stages = [
@@ -795,77 +786,24 @@ async function renderReceiptConfirmArea(order){
   }
 }
 async function sellerCancelOrder(orderId){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o || o.sellerUsername !== currentUser) return;
-  if(o.shipmentStage === 'shipped' || o.shipmentStage === 'delivered'){ showToast('Trop tard — cette commande a déjà été expédiée'); return; }
-  const reason = prompt('Pourquoi annulez-vous cette commande de « '+o.productName+' » ? (rupture de stock, adresse incorrecte...)');
-  if(reason === null || !reason.trim()) return;
-  o.status = 'cancelled';
-  o.cancelledAt = new Date().toISOString();
-  o.cancelledBy = 'seller';
-  o.cancellationReason = reason.trim();
-  await saveWithRetry('order:' + orderId, o, true);
-  showToast('Commande annulée ✓');
-  await createNotification(o.buyerUsername, 'order_cancelled_by_seller', currentUser, orderId, o.productName + '__' + reason.trim());
-  await renderSellerDashboard();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function cancelMyOrder(orderId){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o || o.buyerUsername !== currentUser) return;
-  if(o.shipmentStage === 'shipped' || o.shipmentStage === 'delivered'){ showToast('Trop tard — votre colis a déjà été expédié'); return; }
-  const ok = confirm('Annuler définitivement cette commande de « '+o.productName+' » ?');
-  if(!ok) return;
-  o.status = 'cancelled';
-  o.cancelledAt = new Date().toISOString();
-  o.cancelledBy = 'buyer';
-  await saveWithRetry('order:' + orderId, o, true);
-  showToast('Commande annulée ✓');
-  await createNotification(o.sellerUsername, 'order_cancelled', currentUser, orderId, o.productName);
-  await openOrderReceipt(orderId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function checkVerifiedDeliveryBadge(sellerUsername){
-  const allOrders = await fetchOrders();
-  const sellerOrders = allOrders.filter(o => o.sellerUsername === sellerUsername && o.status === 'fulfilled' && (o.shipmentStage === 'shipped' || o.shipmentStage === 'delivered'));
-  if(sellerOrders.length < 5) return;
-  const confirmedCount = sellerOrders.filter(o => o.buyerConfirmedReceipt).length;
-  const confirmedRate = confirmedCount / sellerOrders.length;
-  const qualifies = confirmedRate >= 0.8;
-  const u = await safeGet('user:' + sellerUsername, true);
-  if(!u) return;
-  if(qualifies && !u.verifiedDeliveryBadge){
-    u.verifiedDeliveryBadge = true;
-    await saveWithRetry('user:' + sellerUsername, u, true);
-    await createNotification(sellerUsername, 'verified_delivery_badge', 'Suktum', null, null);
-  } else if(!qualifies && u.verifiedDeliveryBadge){
-    u.verifiedDeliveryBadge = false;
-    await saveWithRetry('user:' + sellerUsername, u, true);
-    await createNotification(sellerUsername, 'verified_delivery_badge_lost', 'Suktum', null, Math.round(confirmedRate * 100) + '%');
-  }
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function confirmOrderReceipt(orderId){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o || o.buyerUsername !== currentUser) return;
-  o.buyerConfirmedReceipt = true;
-  o.buyerConfirmedAt = new Date().toISOString();
-  await saveWithRetry('order:' + orderId, o, true);
-  showToast('Réception confirmée ✓');
-  await checkVerifiedDeliveryBadge(o.sellerUsername);
-  await openOrderReceipt(orderId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function reportNonReceipt(orderId){
-  const o = await safeGet('order:' + orderId, true);
-  if(!o || o.buyerUsername !== currentUser) return;
-  const existing = await safeGet('refundrequest:' + orderId, true);
-  if(existing){ showToast('Un signalement existe déjà pour cette commande'); return; }
-  const ok = confirm('Signaler que vous n’avez pas reçu cette commande, malgré le statut déclaré par le vendeur ? Le vendeur et l’équipe Suktum en seront informés.');
-  if(!ok) return;
-  await saveWithRetry('refundrequest:' + orderId, {
-    orderId, buyerUsername: currentUser, sellerUsername: o.sellerUsername, productName: o.productName,
-    total: o.total, reason: 'Colis jamais reçu malgré le statut « '+(o.shipmentStage||'—')+' » déclaré par le vendeur', status: 'pending', createdAt: new Date().toISOString()
-  }, true);
-  showToast('Signalement envoyé ✓');
-  await logAdminAction('Non-réception signalée par l’acheteur', '@'+currentUser+' — commande de @'+o.sellerUsername+' ('+o.productName+')');
-  await openOrderReceipt(orderId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 /* ---------- SUIVI DES DEMANDES DE REMBOURSEMENT ---------- */
 async function renderRefundRequestArea(order){
@@ -881,20 +819,8 @@ async function renderRefundRequestArea(order){
   }
 }
 async function requestRefund(orderId){
-  const order = await safeGet('order:' + orderId, true);
-  if(!order || order.buyerUsername !== currentUser) return;
-  const existing = await safeGet('refundrequest:' + orderId, true);
-  if(existing){ showToast('Une demande existe déjà pour cette commande'); return; }
-  const reason = prompt('Pourquoi souhaitez-vous être remboursé(e) ?');
-  if(reason === null || !reason.trim()) return;
-  await saveWithRetry('refundrequest:' + orderId, {
-    orderId, buyerUsername: currentUser, sellerUsername: order.sellerUsername, productName: order.productName,
-    total: order.total, reason: reason.trim(), status: 'pending', createdAt: new Date().toISOString()
-  }, true);
-  showToast('Demande envoyée ✓');
-  if(order.sellerUsername) await createNotification(order.sellerUsername, 'refund_requested', currentUser, orderId, order.productName);
-  await logAdminAction('Nouvelle demande de remboursement', '@' + currentUser + ' — ' + order.productName + ' (' + order.total.toLocaleString('fr-FR') + ' FCFA)');
-  await openOrderReceipt(orderId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 /* ---------- SON D'ALERTE DU BACK-OFFICE ---------- */
 async function loadAdminAlertSoundToggle(){
@@ -947,36 +873,12 @@ async function fetchRefundRequests(){
   return list;
 }
 async function resolveRefundRequest(orderId, outcome){
-  const r = await safeGet('refundrequest:' + orderId, true);
-  if(!r) return;
-  r.status = 'resolved';
-  r.outcome = outcome;
-  r.resolvedAt = new Date().toISOString();
-  await saveWithRetry('refundrequest:' + orderId, r, true);
-  if(outcome === 'rejected' && r.reason && r.reason.includes('jamais reçu')){
-    const o = await safeGet('order:' + orderId, true);
-    if(o && !o.buyerConfirmedReceipt){
-      o.buyerConfirmedReceipt = true;
-      o.buyerConfirmedAt = new Date().toISOString();
-      o.buyerConfirmedByAdminOverride = true;
-      await saveWithRetry('order:' + orderId, o, true);
-      if(o.sellerUsername) await checkVerifiedDeliveryBadge(o.sellerUsername);
-    }
-  }
-  showToast(outcome === 'upheld' ? 'Réclamation marquée fondée ✓' : 'Réclamation marquée infondée ✓');
-  await logAdminAction('Litige résolu — ' + (outcome === 'upheld' ? 'réclamation fondée' : 'réclamation infondée'), '@' + r.buyerUsername + ' — ' + r.productName);
-  await createNotification(r.buyerUsername, 'dispute_resolved_buyer', currentAdminName || 'Suktum', orderId, r.productName + '__' + outcome);
-  if(r.sellerUsername) await createNotification(r.sellerUsername, 'dispute_resolved_seller', currentAdminName || 'Suktum', orderId, r.productName + '__' + outcome);
-  await renderRefundRequestsAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function setRefundRequestStatus(orderId, status){
-  const r = await safeGet('refundrequest:' + orderId, true);
-  if(!r) return;
-  r.status = status;
-  await saveWithRetry('refundrequest:' + orderId, r, true);
-  showToast('Statut mis à jour ✓');
-  await logAdminAction('Demande de remboursement — statut changé (' + status + ')', '@' + r.buyerUsername + ' — ' + r.productName);
-  await renderRefundRequestsAdmin();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function renderRefundRequestsAdmin(){
   const el = document.getElementById('refund-requests-admin-list');

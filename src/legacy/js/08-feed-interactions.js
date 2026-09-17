@@ -1948,53 +1948,8 @@ async function renderCartScreen(){
   formEl.style.display = 'block';
 }
 async function submitCartCheckout(){
-  const name = document.getElementById('cart-buyer-name').value.trim();
-  const phone = document.getElementById('cart-buyer-phone').value.trim();
-  const address = document.getElementById('cart-buyer-address').value.trim();
-  if(!name || !phone || !address){ showToast('Renseignez votre nom, téléphone et adresse'); return; }
-  const cart = (await safeGet('cart:' + currentUser, true)) || [];
-  if(cart.length === 0) return;
-  const allProducts = await fetchProducts();
-  const commissionRate = await getCommissionRate();
-  const quantityBySeller = {};
-  for(const item of cart){
-    const p = allProducts.find(x => x.id === item.productId);
-    if(!p || !p.sellerUsername) continue;
-    quantityBySeller[p.sellerUsername] = (quantityBySeller[p.sellerUsername] || 0) + item.quantity;
-  }
-  const bundleDiscountsBySeller = {};
-  for(const seller of Object.keys(quantityBySeller)){
-    const b = await safeGet('bundlediscount:' + seller, true);
-    if(b && quantityBySeller[seller] >= b.minItems) bundleDiscountsBySeller[seller] = b.percent;
-  }
-  const orderIds = [];
-  let totalDiscountApplied = 0;
-  for(const item of cart){
-    const p = allProducts.find(x => x.id === item.productId);
-    if(!p) continue;
-    const rawTotal = p.price * item.quantity;
-    const discountPercent = p.sellerUsername ? (bundleDiscountsBySeller[p.sellerUsername] || 0) : 0;
-    const discountAmount = Math.round(rawTotal * discountPercent / 100);
-    const total = rawTotal - discountAmount;
-    totalDiscountApplied += discountAmount;
-    const commissionAmount = Math.round(total * commissionRate / 100);
-    const netAmount = total - commissionAmount;
-    const id = 'order_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-    await saveWithRetry('order:' + id, {
-      id, productId: p.id, productName: p.name, unitPrice: p.price, quantity: item.quantity, total,
-      bundleDiscountPercent: discountPercent || null, bundleDiscountAmount: discountAmount || null,
-      buyerUsername: currentUser, buyerName: name, buyerPhone: phone, buyerAddress: address,
-      sellerUsername: p.sellerUsername || null, country: currentUserCountry,
-      commissionRate, commissionAmount, netAmount, status: 'pending', createdAt: new Date().toISOString()
-    }, true);
-    orderIds.push(id);
-  }
-  await saveWithRetry('cart:' + currentUser, [], true);
-  if(orderIds.length > 0) await recordAdConversionIfAttributed();
-  const instructions = await getPaymentInstructions(currentUserCountry);
-  showToast(orderIds.length + ' commande(s) envoyée(s) ✓' + (totalDiscountApplied > 0 ? ' — ' + totalDiscountApplied.toLocaleString('fr-FR') + ' FCFA de réduction sur lot appliquée' : ''));
-  alert('Pour finaliser vos ' + orderIds.length + ' commande(s) :\n\n' + instructions);
-  go('shop');
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function toggleCommentLike(index){
   if(!requireAccount('Créez un compte pour aimer un commentaire')) return;

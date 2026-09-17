@@ -518,53 +518,16 @@ let currentNegotiationId = null;
 let currentOrderNegotiatedPrice = null;
 let currentOrderAuctionWinningBidApplied = null;
 async function openPriceNegotiation(productId){
-  if(!requireAccount('Créez un compte pour négocier un prix')) return;
-  const product = await safeGet('product:' + productId, true);
-  if(!product) return;
-  if(product.sellerUsername === currentUser){ showToast('Vous ne pouvez pas négocier votre propre produit'); return; }
-  currentNegotiationId = productId + '__' + currentUser;
-  const existing = await safeGet('negotiation:' + currentNegotiationId, true);
-  if(!existing){
-    await saveWithRetry('negotiation:' + currentNegotiationId, {
-      id: currentNegotiationId, productId, sellerUsername: product.sellerUsername, buyerUsername: currentUser,
-      offers: [], status: 'pending', createdAt: new Date().toISOString()
-    }, true);
-  }
-  go('price-negotiation');
-  await renderPriceNegotiation();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function submitNegotiationOffer(){
-  const amountInput = document.getElementById('negotiation-offer-amount');
-  const amount = parseInt(amountInput.value, 10);
-  if(isNaN(amount) || amount <= 0){ showToast('Entrez un montant valide'); return; }
-  const neg = await safeGet('negotiation:' + currentNegotiationId, true);
-  if(!neg) return;
-  neg.offers.push({ by: currentUser, amount, createdAt: new Date().toISOString() });
-  neg.status = 'pending';
-  await saveWithRetry('negotiation:' + currentNegotiationId, neg, true);
-  const otherParty = currentUser === neg.buyerUsername ? neg.sellerUsername : neg.buyerUsername;
-  await createNotification(otherParty, 'negotiation_offer', currentUser, neg.productId, amount.toLocaleString('fr-FR'));
-  showToast('Offre envoyée ✓');
-  await renderPriceNegotiation();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function respondToNegotiation(action){
-  const neg = await safeGet('negotiation:' + currentNegotiationId, true);
-  if(!neg || neg.offers.length === 0) return;
-  const lastOffer = neg.offers[neg.offers.length - 1];
-  if(action === 'accept'){
-    neg.status = 'accepted';
-    await saveWithRetry('negotiation:' + currentNegotiationId, neg, true);
-    const otherParty = currentUser === neg.buyerUsername ? neg.sellerUsername : neg.buyerUsername;
-    await createNotification(otherParty, 'negotiation_accepted', currentUser, neg.productId, lastOffer.amount.toLocaleString('fr-FR'));
-    showToast('Offre acceptée ✓');
-  } else {
-    neg.status = 'rejected';
-    await saveWithRetry('negotiation:' + currentNegotiationId, neg, true);
-    const otherParty = currentUser === neg.buyerUsername ? neg.sellerUsername : neg.buyerUsername;
-    await createNotification(otherParty, 'negotiation_rejected', currentUser, neg.productId, null);
-    showToast('Offre refusée');
-  }
-  await renderPriceNegotiation();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function proceedToNegotiatedOrder(){
   const neg = await safeGet('negotiation:' + currentNegotiationId, true);
@@ -753,33 +716,13 @@ async function openAuctionDetail(productId){
   await renderAuctionDetail();
 }
 async function placeBid(){
-  if(!requireAccount('Créez un compte pour enchérir')) return;
-  const p = await safeGet('product:' + currentAuctionProductId, true);
-  if(!p || !p.isAuction) return;
-  if(new Date(p.auctionEndTime) <= new Date()){ showToast('Cette enchère est terminée'); await renderAuctionDetail(); return; }
-  if(p.sellerUsername === currentUser){ showToast('Vous ne pouvez pas enchérir sur votre propre produit'); return; }
-  const amount = parseInt(document.getElementById('auction-bid-amount').value, 10);
-  const minBid = p.auctionCurrentBid + 1;
-  if(isNaN(amount) || amount < minBid){ showToast('Votre mise doit être d’au moins ' + minBid.toLocaleString('fr-FR') + ' FCFA'); return; }
-  const previousBidder = p.auctionHighestBidder;
-  p.auctionCurrentBid = amount;
-  p.auctionHighestBidder = currentUser;
-  await saveWithRetry('product:' + currentAuctionProductId, p, true);
-  await saveWithRetry('auctionbid:' + currentAuctionProductId + '__' + Date.now(), { bidder: currentUser, amount, createdAt: new Date().toISOString() }, true);
-  if(previousBidder && previousBidder !== currentUser){
-    await createNotification(previousBidder, 'auction_outbid', currentUser, currentAuctionProductId, amount.toLocaleString('fr-FR'));
-  }
-  showToast('Mise enregistrée ✓');
-  await renderAuctionDetail();
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 let currentOrderAuctionWinningBid = null;
 async function proceedToAuctionCheckout(){
-  const p = await safeGet('product:' + currentAuctionProductId, true);
-  if(!p || p.auctionHighestBidder !== currentUser) return;
-  currentOrderAuctionWinningBid = p.auctionCurrentBid;
-  p.auctionSettled = true;
-  await saveWithRetry('product:' + currentAuctionProductId, p, true);
-  await openOrderScreen(currentAuctionProductId);
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function renderAuctionDetail(){
   const p = await safeGet('product:' + currentAuctionProductId, true);
@@ -1325,19 +1268,8 @@ async function renderServiceBookingSlots(){
     availableSlots.map(iso => '<button class="btn btn-outline btn-sm" style="width:100%; margin-bottom:8px;" onclick="bookServiceSlot(\''+iso+'\')">📅 '+new Date(iso).toLocaleString('fr-FR', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})+'</button>').join('');
 }
 async function bookServiceSlot(slotIso){
-  const p = await safeGet('product:' + currentServiceBookingProductId, true);
-  if(!p || !p.serviceSlots || !p.serviceSlots.includes(slotIso)){ showToast('Ce créneau n’est plus disponible'); await renderServiceBookingSlots(); return; }
-  p.serviceSlots = p.serviceSlots.filter(s => s !== slotIso);
-  await saveWithRetry('product:' + currentServiceBookingProductId, p, true);
-  const id = 'servicebooking_' + Date.now();
-  await saveWithRetry('servicebooking:' + id, {
-    id, productId: currentServiceBookingProductId, productName: p.name, sellerUsername: p.sellerUsername,
-    buyerUsername: currentUser, price: p.price, slot: slotIso, status: 'confirmed', createdAt: new Date().toISOString(), sourceLiveId: currentPurchaseSourceLiveId
-  }, true);
-  currentPurchaseSourceLiveId = null;
-  await createNotification(p.sellerUsername, 'service_booked', currentUser, currentServiceBookingProductId, p.name + '__' + slotIso);
-  showToast('Réservation confirmée ✓');
-  go('shop');
+  /* phase 06 : logique serveur — voir src/platform/overrides/10-boutique.js */
+  return;
 }
 async function fetchMyServiceBookings(username, asSeller){
   const keys = await safeList('servicebooking:', true);
