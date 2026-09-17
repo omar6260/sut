@@ -12,7 +12,7 @@
     "serve": "node scripts/serve.mjs",
     "test:e2e": "playwright test",
     "emulators": "firebase emulators:start --project suktum-dev",
-    "test:rules": "firebase emulators:exec --only firestore --project suktum-dev \"node --test tests/rules\"",
+    "test:rules": "firebase emulators:exec --only auth,firestore --project suktum-dev \"node --test --test-concurrency=1 tests/rules/*.test.mjs\"",
     "test:e2e:firebase": "firebase emulators:exec --only auth,firestore --project suktum-dev \"SUKTUM_BACKEND=firebase playwright test --workers=1\"",
     "rules": "node scripts/generate-rules.mjs"
   },

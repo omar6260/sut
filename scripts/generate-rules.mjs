@@ -29,7 +29,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function authed() { return request.auth != null; }
     function isOwner() { return resource != null && resource.data.owner == request.auth.uid; }
-    function ownerUnchanged() { return !('owner' in request.resource.data) || request.resource.data.owner == resource.data.owner; }
+    function ownerUnchanged() { return !('owner' in request.resource.data) || ('owner' in resource.data && request.resource.data.owner == resource.data.owner); }
     function isPrivate(c) { return c in ${list(priv)}; }
     function isReadOnly(c) { return c in ${list(readOnly)}; }
     function isKv(c) { return c.matches('kv_.*') && c != 'kv_settings'; }

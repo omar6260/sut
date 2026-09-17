@@ -68,3 +68,17 @@ Alternative écartée : découpage par marqueur de section (276 fichiers) — tr
 | Google Identity (`accounts.google.com/gsi/client`) | chargé (`GOOGLE_CLIENT_ID` vide de toute façon) | chargé (popup non testée ; COOP `same-origin` est connu pour casser la fenêtre de connexion) |
 | Jitsi (`meet.jit.si/external_api.js`) | chargé | **BLOQUÉ** — `ERR_BLOCKED_BY_RESPONSE … CoEP` : le serveur public n'envoie pas de `Cross-Origin-Resource-Policy` → lives et Penc impossibles |
 Conclusion pour la phase 07 : les deux configurations sont incompatibles avec le prototype tel quel. Options : (a) cœur FFmpeg **mono-thread** (`@ffmpeg/core-st`, sans SAB ni COOP/COEP, Jitsi conservé) ; (b) filigrane/filtres côté Cloudflare Stream et suppression de FFmpeg ; (c) COOP/COEP + Jitsi auto-hébergé/JaaS avec en-têtes CORP. Recommandation : (b) à terme, (a) en transition.
+
+## 2026-09-17 — Phase 04
+
+**Règles Firestore de phase 04 : PRIVE → propriétaire ; secrets et listes de rôles de `settings:` → lecture seule ; tout le reste ouvert aux utilisateurs authentifiés.**
+Raison : bloquer SERVEUR_SEUL maintenant (comme le prompt le suggérait) casserait l'inscription, la connexion, la publication et la commande, faute de Functions ; la stratégie « aucune régression par phase » prime. La politique complète est générée par `node scripts/generate-rules.mjs --phase 06`.
+Alternative écartée : blocage total avec liste d'exceptions — la liste aurait contenu la moitié des préfixes, sans valeur de sécurité sur un projet de dev.
+
+**Routage de l'adaptateur par le paramètre `shared` du legacy (phase 04), classification appliquée dans les règles.**
+Raison : reproduit exactement le comportement actuel (y compris ses défauts) ; le routage par table de préfixes (recommandé par l'architecte) s'imposera quand `user` sera éclaté (05/06).
+
+**SDK Firebase servi localement (`dist/vendor/`, bundles compat 10.14.1), pas depuis un CDN.**
+Raison : les tests coupent tout réseau externe ; pas de dépendance à `gstatic` au premier rendu ; épinglage exact.
+
+**Décisions produit D4–D9 : en attente, valeurs par défaut = comportement du prototype** (renommage conservé, opt-out inopérant conservé, wishlist PRIVE, contenu de cours après inscription, médias > 900 Ko refusés jusqu'à la phase 07).

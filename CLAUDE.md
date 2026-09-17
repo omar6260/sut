@@ -57,8 +57,10 @@ docs/journal/           journal des phases, décisions, a-traiter.md
 - `node scripts/verify-split.mjs` — prouve que `src/legacy` reconstitue le prototype octet pour octet (phase 03)
 - `npm run serve` — sert `dist/` sur http://localhost:5173 (lancé automatiquement par Playwright)
 - `npm run test:e2e` — Playwright (30 tests, ~1 min ; voir `tests/README.md` pour la fixture `suktum` et les écarts assumés)
-- `npm run emulators` — émulateurs Firebase
-- `npm run test:rules` — tests des règles Firestore
+- `npm run emulators` — émulateurs Firebase (projet `suktum-dev`)
+- `npm run test:e2e:firebase` — la même suite e2e contre l'émulateur Firestore (adaptateur réel, 1 worker)
+- `npm run test:rules` — règles Firestore + adaptateur sur émulateur (`node --test`)
+- `npm run rules` — régénère `firestore.rules` depuis `docs/inventaire/classification.md` (jamais à la main)
 - `npm --prefix functions test` — tests unitaires des fonctions
 
 ## Sous-agents disponibles

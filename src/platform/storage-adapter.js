@@ -11,7 +11,7 @@
 
   PLATFORM.createStorageAdapter = function createStorageAdapter({ db, getUid, ready, FieldValue }) {
     const { pathFor, decodeId, splitKey } = PLATFORM.keys;
-    const stats = (PLATFORM.stats = { reads: 0, writes: 0, deletes: 0, cacheHits: 0, byPrefix: {} });
+    const stats = (PLATFORM.stats = PLATFORM.stats || { reads: 0, writes: 0, deletes: 0, cacheHits: 0, byPrefix: {} });
     const count = (kind, prefix, n = 1) => { stats[kind] += n; const p = (stats.byPrefix[prefix] = stats.byPrefix[prefix] || { reads: 0, writes: 0, deletes: 0, cacheHits: 0 }); p[kind] += n; };
     const cache = new Map(); // cacheKey → { value: string|null, at: ms }
     const cacheKey = (key, shared) => (shared ? 's:' : 'p:') + key;
