@@ -193,7 +193,7 @@ export const spendCoins = onCall({ region: REGION }, async (req) => {
 
 /** Début d'une publicité récompensée (startRewardedAd l. 34669-34676) : vérifie réglage et plafond, ouvre une session horodatée. */
 export const startRewardedAd = onCall({ region: REGION }, async (req) => {
-  const { username: u, adId } = parse(z.object({ username, adId: z.string().optional() }), req.data);
+  const { username: u, adId, durationSeconds } = parse(z.object({ username, adId: z.string().optional(), durationSeconds: z.number().positive().optional() }), req.data);
   await requireUsername(req, u);
   const [dailyLimit, adReward] = await Promise.all([setting<number>('adcoindailylimit', DEFAULT_AD_DAILY_LIMIT), setting<number>('adcoinreward', 0)]);
   if (!(adReward > 0)) throw new HttpsError('failed-precondition', 'Cette fonctionnalité n’est pas encore activée'); // l. 34671
@@ -201,7 +201,9 @@ export const startRewardedAd = onCall({ region: REGION }, async (req) => {
   const count = (await kvGet<number>(watchKey)) || 0;
   if (count >= (dailyLimit || DEFAULT_AD_DAILY_LIMIT)) throw new HttpsError('resource-exhausted', 'Vous avez atteint la limite quotidienne de publicités récompensées'); // l. 34675
   const sessionKey = 'adcoinsession:' + u;
-  await kvRef(sessionKey).set({ owner: 'server', updatedAt: FieldValue.serverTimestamp(), data: { adId: adId || null, startedAt: Date.now() } });
+  // Durée exigée : celle de la vidéo (l. 34689) plafonnée à 15 s (image, l. 34687) ; jamais moins de 1 s.
+  const requiredMs = Math.max(1, Math.min(REWARDED_AD_MIN_SECONDS, Math.round(durationSeconds || REWARDED_AD_MIN_SECONDS))) * 1000;
+  await kvRef(sessionKey).set({ owner: 'server', updatedAt: FieldValue.serverTimestamp(), data: { adId: adId || null, startedAt: Date.now(), requiredMs } });
   return { ok: true, adReward, touched: [sessionKey] };
 });
 
@@ -214,9 +216,9 @@ export const rewardedAdReward = onCall({ region: REGION }, async (req) => {
   return db().runTransaction(async (tx) => {
     const [dailyLimit, adReward, session, count, balance] = await Promise.all([
       setting<number>('adcoindailylimit', DEFAULT_AD_DAILY_LIMIT, tx), setting<number>('adcoinreward', 0, tx),
-      kvGet<{ startedAt: number }>(sessionKey, tx), kvGet<number>(watchKey, tx), balanceOf(u, tx)]);
+      kvGet<{ startedAt: number; requiredMs?: number }>(sessionKey, tx), kvGet<number>(watchKey, tx), balanceOf(u, tx)]);
     if (!(adReward > 0)) throw new HttpsError('failed-precondition', 'Cette fonctionnalité n’est pas encore activée');
-    if (!session || Date.now() - session.startedAt < REWARDED_AD_MIN_SECONDS * 1000 - 500) throw new HttpsError('failed-precondition', 'Regardez la publicité jusqu’au bout pour recevoir vos pièces');
+    if (!session || Date.now() - session.startedAt < (session.requiredMs || REWARDED_AD_MIN_SECONDS * 1000) - 500) throw new HttpsError('failed-precondition', 'Regardez la publicité jusqu’au bout pour recevoir vos pièces');
     if ((count || 0) >= (dailyLimit || DEFAULT_AD_DAILY_LIMIT)) throw new HttpsError('resource-exhausted', 'Vous avez atteint la limite quotidienne de publicités récompensées');
     kvSet(balanceKey(u), balance + adReward, tx, 'server');
     kvSet(watchKey, (count || 0) + 1, tx, 'server');
