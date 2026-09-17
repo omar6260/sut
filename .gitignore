@@ -13,3 +13,6 @@ blob-report/
 
 # Système
 .DS_Store
+
+# Config Firebase locale (jamais versionnée)
+src/platform/firebase-config.local.js

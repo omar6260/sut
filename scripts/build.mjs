@@ -20,7 +20,10 @@ export async function assemble({ mode = 'single' } = {}) {
   const styles = '<style>\n' + css + '</style>';
   // Scripts plateforme (phase 04+) : SDK Firebase (bundles compat servis localement) puis src/platform, AVANT le legacy.
   const platformDir = path.join(root, 'src', 'platform');
-  const platformFiles = ['firebase-config.js', 'storage-keys.js', 'storage-adapter.js', 'boot.js'].filter((f) => existsSync(path.join(platformDir, f)));
+  const platformFiles = ['firebase-config.local.js', 'storage-keys.js', 'storage-adapter.js', 'boot.js'].filter((f) => existsSync(path.join(platformDir, f)));
+  if (existsSync(path.join(platformDir, 'boot.js')) && !existsSync(path.join(platformDir, 'firebase-config.local.js'))) {
+    throw new Error('src/platform/firebase-config.local.js manquant : copier firebase-config.example.js et le renseigner (npx firebase apps:sdkconfig WEB)');
+  }
   const vendor = VENDOR.map((f) => `<script src="vendor/${f}"></script>`).join('\n');
   const platform = platformFiles.map((f) => `<script src="platform/${f}"></script>`).join('\n');
   let scripts;
@@ -47,7 +50,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     for (const d of ['js', 'platform', 'vendor']) await rm(path.join(distDir, d), { recursive: true, force: true });
     if (multi) {
       await cp(path.join(srcDir, 'js'), path.join(distDir, 'js'), { recursive: true });
-      await cp(path.join(root, 'src', 'platform'), path.join(distDir, 'platform'), { recursive: true });
+      await cp(path.join(root, 'src', 'platform'), path.join(distDir, 'platform'), { recursive: true, filter: (src) => !src.endsWith('.example.js') && !src.endsWith('README.md') });
       await mkdir(path.join(distDir, 'vendor'), { recursive: true });
       for (const f of VENDOR) await cp(path.join(root, 'node_modules', 'firebase', f), path.join(distDir, 'vendor', f));
     }
